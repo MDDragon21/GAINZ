@@ -2,7 +2,10 @@
 <html lang="de">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#061410" />
 <title>GAINZ — Fitness Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,8 +43,18 @@
     --txt-2: #8fa89d;
     --txt-3: #4a6b5e;
   }
-  html, body { margin: 0; padding: 0; background: #061410; color: var(--txt); font-family: 'Space Grotesk', system-ui, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #061410; color: var(--txt);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: 100%;
+    overscroll-behavior: none;
+  }
   body { background: #061410; }
+  #root { min-height: 100vh; min-height: 100dvh; }
   .grad-text {
     background: var(--grad);
     -webkit-background-clip: text;

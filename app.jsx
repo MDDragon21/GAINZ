@@ -224,51 +224,40 @@ function AppShell({ user }) {
     setTweak('screen', id);
   };
 
-  const phoneScreen = (
-    <div style={{
-      width: '100%', height: '100%',
-      background: 'var(--bg)',
-      position: 'relative', overflow: 'hidden',
-      color: 'var(--txt)',
-    }}>
-      <div className={t.grain ? 'grain' : ''} style={{
-        position:'absolute', inset: 0, overflow:'hidden',
-        background:
-          'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(61,128,104,0.04), transparent 60%),' +
-          'radial-gradient(ellipse 60% 30% at 100% 100%, rgba(255,215,0,0.04), transparent 70%),' +
-          'var(--bg)',
-      }}/>
-      <div className="screen-scroll" style={{
-        position:'relative', zIndex: 2,
-        height: '100%', overflowY: 'auto',
-        paddingTop: 56, paddingBottom: 110,
+  return (
+    <>
+      <div style={{
+        position: 'fixed', inset: 0,
+        background: 'var(--bg)',
+        color: 'var(--txt)',
+        overflow: 'hidden',
       }}>
-        {screenContent}
+        <div className={t.grain ? 'grain' : ''} style={{
+          position:'absolute', inset: 0, overflow:'hidden', pointerEvents:'none',
+          background:
+            'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(61,128,104,0.04), transparent 60%),' +
+            'radial-gradient(ellipse 60% 30% at 100% 100%, rgba(255,215,0,0.04), transparent 70%),' +
+            'var(--bg)',
+        }}/>
+        <div className="screen-scroll" style={{
+          position:'absolute', inset: 0,
+          zIndex: 2,
+          overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+          paddingTop:    'calc(env(safe-area-inset-top, 0px) + 16px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
+          paddingLeft:   'env(safe-area-inset-left, 0px)',
+          paddingRight:  'env(safe-area-inset-right, 0px)',
+        }}>
+          {screenContent}
+        </div>
+
+        <BottomNav active={screen} onChange={goToScreen}/>
+
+        {workoutSession && <GuidedWorkout session={workoutSession} onExit={handleWorkoutExit}/>}
       </div>
 
-      <BottomNav active={screen} onChange={goToScreen}/>
-
-      {workoutSession && <GuidedWorkout session={workoutSession} onExit={handleWorkoutExit}/>}
-    </div>
-  );
-
-  return (
-    <div style={{
-      minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
-      padding: '40px 20px',
-    }}>
-      {t.showFrame ? (
-        <IOSDevice width={390} height={844} dark>
-          {phoneScreen}
-        </IOSDevice>
-      ) : (
-        <div style={{ width: 390, height: 844, borderRadius: 28, overflow:'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.5)' }}>
-          {phoneScreen}
-        </div>
-      )}
-
       <Tweaks t={t} setTweak={setTweak}/>
-    </div>
+    </>
   );
 }
 
@@ -305,7 +294,10 @@ function BottomNav({ active, onChange }) {
   return (
     <div style={{
       position:'absolute', bottom: 0, left: 0, right: 0, zIndex: 50,
-      paddingBottom: 18, paddingTop: 10,
+      paddingTop: 10,
+      paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
+      paddingLeft:  'env(safe-area-inset-left, 0px)',
+      paddingRight: 'env(safe-area-inset-right, 0px)',
       background:'linear-gradient(180deg, transparent 0%, rgba(8,8,8,0.85) 30%, rgba(8,8,8,0.95) 100%)',
       backdropFilter:'blur(14px)',
       WebkitBackdropFilter:'blur(14px)',
@@ -344,7 +336,6 @@ function Tweaks({ t, setTweak }) {
           options={[ PALETTES.forest, PALETTES.indigo, PALETTES.matrix, PALETTES.amber, PALETTES.cobalt ]}/>
       </TweakSection>
       <TweakSection label="Look">
-        <TweakToggle label="iPhone-Frame zeigen" value={t.showFrame} onChange={(v) => setTweak('showFrame', v)}/>
         <TweakToggle label="Korn-Textur" value={t.grain} onChange={(v) => setTweak('grain', v)}/>
       </TweakSection>
       <TweakSection label="Inhalt">
