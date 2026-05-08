@@ -7,20 +7,27 @@ const NAV = [
   { id:'profile',  label:'Profil',    icon: 'user'      },
 ];
 
-// Palettes — each: [accent-light, accent-deep, bg, card, line]
-const PALETTES = {
-  forest:  ['#3d8068', '#173a2e', '#020805', '#061410', '#0d2018'],
-  indigo:  ['#4c2bb0', '#1d1a5e', '#050510', '#0a0a18', '#161635'],
-  matrix:  ['#00CC33', '#007722', '#040605', '#0a0e0c', '#101a14'],
-  amber:   ['#d4761a', '#7a2710', '#100805', '#1a100a', '#28180e'],
-  cobalt:  ['#2a6bd6', '#0e2566', '#04081a', '#0a1230', '#152545'],
+// Themes — three options, applied to CSS vars on :root.
+// accent2 = deep end of brand gradient, accent1 = light end / solid accent.
+const THEMES = {
+  forest: {
+    label: 'Forest',
+    bg: '#061410', bgDeep: '#020805', card: '#143028', line: '#1f4035',
+    accent1: '#00FF41', accent2: '#0a8a2c',
+  },
+  ocean: {
+    label: 'Ocean',
+    bg: '#060d1a', bgDeep: '#03070f', card: '#0e1a30', line: '#1e2a4a',
+    accent1: '#7C3AED', accent2: '#4F46E5',
+  },
+  rose: {
+    label: 'Rose',
+    bg: '#1a060d', bgDeep: '#0d0307', card: '#2a1018', line: '#4a1a28',
+    accent1: '#FF6B9D', accent2: '#FF3B8F',
+  },
 };
-
-function paletteKeyFromTuple(tuple) {
-  const s = JSON.stringify(tuple);
-  for (const [k, v] of Object.entries(PALETTES)) if (JSON.stringify(v) === s) return k;
-  return 'forest';
-}
+const THEME_KEYS = Object.keys(THEMES);
+function resolveTheme(key) { return THEMES[key] ? key : 'forest'; }
 
 function mix(hex, target, amt) {
   const h = hex.replace('#','');
@@ -63,43 +70,45 @@ function AppShell({ user }) {
   React.useEffect(() => { if (srv) setLocal(srv); }, [srv]);
 
   const profile = local?._profile;
-  const paletteKey = profile?.palette || 'forest';
-  const paletteTuple = PALETTES[paletteKey] || PALETTES.forest;
+  const themeKey = resolveTheme(local?.palette);
 
   const t = profile ? {
     screen:           profile.active_screen || 'overview',
-    palette:          paletteTuple,
+    theme:            themeKey,
     showLossAvoid:    profile.show_loss_avoid,
     showCoachInsight: profile.show_coach_insight,
-    showFrame:        profile.show_frame,
     grain:            profile.grain,
   } : null;
 
   const [screen, setScreen] = React.useState('overview');
   React.useEffect(() => { if (t?.screen) setScreen(t.screen); }, [t?.screen]);
 
-  // Apply palette → CSS variables
+  // Apply theme → CSS variables (root). All components read from these
+  // — never hardcoded colors — so switching theme repaints instantly.
   React.useEffect(() => {
-    if (!t) return;
-    const [light, deep, bg, card, line] = t.palette;
+    const T = THEMES[themeKey];
     const r = document.documentElement.style;
-    r.setProperty('--g1', deep);
-    r.setProperty('--g2', light);
-    r.setProperty('--grad', `linear-gradient(135deg, ${deep} 0%, ${light} 100%)`);
-    r.setProperty('--grad-soft', `linear-gradient(135deg, rgba(${hexRgb(deep)},0.18), rgba(${hexRgb(light)},0.18))`);
-    r.setProperty('--green', light);
-    r.setProperty('--green-deep', deep);
-    r.setProperty('--green-soft', `rgba(${hexRgb(light)},0.14)`);
-    r.setProperty('--green-glow', `rgba(${hexRgb(light)},0.40)`);
-    r.setProperty('--bg', bg);
-    r.setProperty('--bg-deep', mix(bg, 'black', 0.4));
-    r.setProperty('--card', card);
-    r.setProperty('--card-2', mix(card, 'white', 0.06));
-    r.setProperty('--line', line);
-    r.setProperty('--line-2', mix(line, 'white', 0.20));
-    r.setProperty('--inactive', line);
-    document.body.style.background = mix(bg, 'black', 0.4);
-  }, [paletteKey]);
+    // New canonical names
+    r.setProperty('--accent-primary',   T.accent1);
+    r.setProperty('--accent-secondary', T.accent2);
+    // Legacy aliases — many existing components use these names.
+    r.setProperty('--g1', T.accent2);
+    r.setProperty('--g2', T.accent1);
+    r.setProperty('--grad',      `linear-gradient(135deg, ${T.accent2} 0%, ${T.accent1} 100%)`);
+    r.setProperty('--grad-soft', `linear-gradient(135deg, rgba(${hexRgb(T.accent2)},0.18), rgba(${hexRgb(T.accent1)},0.18))`);
+    r.setProperty('--green',       T.accent1);
+    r.setProperty('--green-deep',  T.accent2);
+    r.setProperty('--green-soft',  `rgba(${hexRgb(T.accent1)},0.14)`);
+    r.setProperty('--green-glow',  `rgba(${hexRgb(T.accent1)},0.40)`);
+    r.setProperty('--bg',       T.bg);
+    r.setProperty('--bg-deep',  T.bgDeep);
+    r.setProperty('--card',     T.card);
+    r.setProperty('--card-2',   mix(T.card, 'white', 0.06));
+    r.setProperty('--line',     T.line);
+    r.setProperty('--line-2',   mix(T.line, 'white', 0.20));
+    r.setProperty('--inactive', T.line);
+    document.body.style.background = T.bgDeep;
+  }, [themeKey]);
 
   // Persisting setData wrapper passed to screens — DB writes for relevant fields,
   // local-only for transient UI state.
@@ -145,6 +154,9 @@ function AppShell({ user }) {
     if (computed.streak !== local.streak) profilePatch.streak = computed.streak;
     if (computed.weekDone !== local.weekDone) profilePatch.week_done = computed.weekDone;
     if (computed.weekGoal !== local.weekGoal) profilePatch.week_goal = computed.weekGoal;
+    if (computed.palette !== local.palette && THEMES[computed.palette]) {
+      profilePatch.palette = computed.palette;
+    }
     if (JSON.stringify(computed.muscleTargets || {}) !== JSON.stringify(local.muscleTargets || {})) {
       profilePatch.muscle_targets = computed.muscleTargets;
     }
@@ -165,16 +177,20 @@ function AppShell({ user }) {
       palette: 'palette',
       showLossAvoid: 'show_loss_avoid',
       showCoachInsight: 'show_coach_insight',
-      showFrame: 'show_frame',
       grain: 'grain',
     };
     const patch = {};
     for (const [k, v] of Object.entries(edits)) {
       const f = fieldMap[k];
       if (!f) continue;
-      patch[f] = (k === 'palette') ? paletteKeyFromTuple(v) : v;
+      patch[f] = v;
     }
-    setLocal(d => d ? ({ ...d, _profile: { ...d._profile, ...patch } }) : d);
+    setLocal(d => {
+      if (!d) return d;
+      const next = { ...d, _profile: { ...d._profile, ...patch } };
+      if (patch.palette) next.palette = patch.palette;
+      return next;
+    });
     if (edits.screen) setScreen(edits.screen);
     try { await window.gainz.profile.update(user.id, patch); } catch (e) { console.error(e); }
   }, [profile, user]);
@@ -332,12 +348,13 @@ function Tweaks({ t, setTweak }) {
           ]}/>
       </TweakSection>
       <TweakSection label="Farbschema">
-        <TweakColor label="Palette" value={t.palette} onChange={(v) => setTweak('palette', v)}
-          options={[ PALETTES.forest, PALETTES.indigo, PALETTES.matrix, PALETTES.amber, PALETTES.cobalt ]}/>
+        <TweakSelect label="Theme" value={t.theme} onChange={(v) => setTweak('palette', v)}
+          options={THEME_KEYS.map(k => ({ value: k, label: THEMES[k].label }))}/>
       </TweakSection>
       <TweakSection label="Look">
         <TweakToggle label="Korn-Textur" value={t.grain} onChange={(v) => setTweak('grain', v)}/>
       </TweakSection>
+      {/* Expose theme registry on window so screens can render the picker. */}
       <TweakSection label="Inhalt">
         <TweakToggle label="Loss-Avoidance Banner" value={t.showLossAvoid} onChange={(v) => setTweak('showLossAvoid', v)}/>
         <TweakToggle label="Coach Insight" value={t.showCoachInsight} onChange={(v) => setTweak('showCoachInsight', v)}/>
@@ -345,5 +362,9 @@ function Tweaks({ t, setTweak }) {
     </TweaksPanel>
   );
 }
+
+// Expose theme registry to other screens (Profile picker reads from it).
+window.GAINZ_THEMES = THEMES;
+window.GAINZ_THEME_KEYS = THEME_KEYS;
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);

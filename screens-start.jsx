@@ -328,7 +328,7 @@ function GuidedWorkout({ session, onExit }) {
   const totalT = phase === 'work' ? (session?.work || 40) : (session?.rest || 60);
   const pct = 1 - tick / totalT;
   const C = 2 * Math.PI * 130;
-  const accent = phase === 'work' ? '#3d8068' : '#3d8068';
+  const accent = 'var(--accent-primary)';
 
   const fmt = (s) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 
@@ -409,7 +409,7 @@ function GuidedWorkout({ session, onExit }) {
           {Array.from({ length: totalSets }).map((_,i) => (
             <div key={i} style={{
               width: i === setIdx-1 ? 26 : 7, height: 7, borderRadius: 7,
-              background: i < setIdx ? 'linear-gradient(135deg, #173a2e 0%, #3d8068 100%)' : '#2a2a3a',
+              background: i < setIdx ? 'var(--grad)' : '#2a2a3a',
               boxShadow: i === setIdx-1 ? '0 0 8px rgba(61,128,104,0.36)' : 'none',
               transition:'all .3s'
             }}/>

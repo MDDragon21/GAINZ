@@ -517,6 +517,49 @@ function ScreenProfile({ data, setData, user, reload }) {
         }}>Alle Daten wurden zurückgesetzt.</div>
       )}
 
+      {/* THEME PICKER — Forest / Ocean / Rose */}
+      <Section title="Theme">
+        <Card padding={18}>
+          <div style={{ fontSize: 12, color:'var(--txt-2)', marginBottom: 12, lineHeight: 1.45 }}>
+            Wähle dein Farbschema. Wirkt sofort überall.
+          </div>
+          <div style={{ display:'flex', gap: 14, justifyContent:'flex-start' }}>
+            {(window.GAINZ_THEME_KEYS || ['forest','ocean','rose']).map((key) => {
+              const T = (window.GAINZ_THEMES || {})[key];
+              if (!T) return null;
+              const active = (data.palette || 'forest') === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setData({ ...data, palette: key })}
+                  aria-label={`Theme ${T.label}`}
+                  style={{
+                    display:'flex', flexDirection:'column', alignItems:'center', gap: 6,
+                    background:'transparent', border:'none', cursor:'pointer',
+                    padding: 0, fontFamily:'inherit',
+                  }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: 999,
+                    background: `linear-gradient(135deg, ${T.accent2} 0%, ${T.accent1} 100%)`,
+                    boxShadow: active
+                      ? `0 0 0 3px #FFFFFF, 0 0 22px ${T.accent1}99`
+                      : `0 0 16px ${T.accent1}55`,
+                    transition: 'box-shadow .18s, transform .18s',
+                    transform: active ? 'scale(1.04)' : 'scale(1)',
+                  }}/>
+                  <div style={{
+                    fontSize: 11, fontWeight: 700,
+                    color: active ? 'var(--txt)' : 'var(--txt-2)',
+                    fontFamily:'JetBrains Mono, monospace',
+                    textTransform:'uppercase', letterSpacing: 1,
+                  }}>{T.label}</div>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      </Section>
+
       {/* SETTINGS — kontoseitig */}
       <Section title="Einstellungen">
         <Card padding={4}>

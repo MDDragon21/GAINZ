@@ -307,6 +307,7 @@ window.useGainzData = function useGainzData(user) {
         bmi:         Number(profile.current_bmi ?? 0),
         height:      profile.height_cm != null ? Number(profile.height_cm) : null,
         targetWeight: profile.target_weight != null ? Number(profile.target_weight) : null,
+        palette: profile.palette || 'forest',
         muscleTargets: profile.muscle_targets || {
           brust:20, ruecken:20, schultern:20, bizeps:20, trizeps:20, bauch:20, beine:20,
         },

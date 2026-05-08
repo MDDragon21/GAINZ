@@ -43,7 +43,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
     if (!goal) return 'rgba(255,255,255,0.18)';     // no goal set
     if (actual <= 0) return 'rgba(255,255,255,0.18)'; // grey: 0 sets logged
     const pct = actual / goal;
-    if (pct >= 1) return '#22C55E';
+    if (pct >= 1) return 'var(--accent-primary)';
     if (pct >= 0.5) return '#FFD700';
     return '#EF4444';
   };
@@ -101,7 +101,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
           width: '100%', border: 'none', cursor: 'pointer',
           padding: '20px 22px',
           borderRadius: 22,
-          background: 'linear-gradient(135deg, #173a2e 0%, #3d8068 100%)',
+          background: 'var(--grad)',
           display: 'flex', alignItems: 'center', gap: 14,
           textAlign: 'left', color: '#fff',
           position: 'relative', overflow: 'hidden',
@@ -180,7 +180,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
                 {Array.from({ length: weekGoal }).map((_, i) => (
                   <div key={i} style={{
                     flex: 1, height: 8, borderRadius: 8,
-                    background: i < weekDone ? 'linear-gradient(135deg, #173a2e 0%, #3d8068 100%)' : '#2a2a3a',
+                    background: i < weekDone ? 'var(--grad)' : '#2a2a3a',
                     boxShadow: i < weekDone ? '0 0 10px rgba(61,128,104,0.28)' : 'none',
                     transition:'background .3s'
                   }}/>
@@ -250,7 +250,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
           {/* LEGEND — color key */}
           <div style={{ display:'flex', gap: 12, justifyContent:'center', marginBottom: 12, flexWrap:'wrap' }}>
             {[
-              { c:'#22C55E', label:'100%+' },
+              { c:'var(--accent-primary)', label:'100%+' },
               { c:'#FFD700', label:'50–99%' },
               { c:'#EF4444', label:'< 50%' },
             ].map(l => (
