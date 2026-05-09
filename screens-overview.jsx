@@ -37,15 +37,24 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
   const actualByPeriod = Object.fromEntries(Object.entries(setsLast7d).map(([k,v]) => [k, Math.round(v * periodCfg.mult)]));
   const goalByPeriod   = Object.fromEntries(Object.entries(weeklyGoals).map(([k,v]) => [k, v * periodCfg.mult]));
 
+  // Muscle-status colors are SEMANTIC and fixed across all themes.
+  // Never resolve to var(--accent) or var(--gold) — these mean
+  // "goal reached / partial / under" and must read identically
+  // regardless of which theme accent is active.
+  const STATUS_COLOR = {
+    full:    '#00A878', // 100%+ erreicht
+    partial: '#C9A84C', // 50–99% erreicht
+    under:   '#8B1A1A', // < 50%
+    zero:    '#1a1a1a', // 0 Sets / kein Ziel
+  };
   const colorFor = (k) => {
     const goal = goalByPeriod[k];
     const actual = actualByPeriod[k] || 0;
-    if (!goal) return 'rgba(255,255,255,0.18)';     // no goal set
-    if (actual <= 0) return 'rgba(255,255,255,0.18)'; // grey: 0 sets logged
+    if (!goal || actual <= 0) return STATUS_COLOR.zero;
     const pct = actual / goal;
-    if (pct >= 1) return 'var(--accent)';
-    if (pct >= 0.5) return '#FFD700';
-    return '#EF4444';
+    if (pct >= 1)   return STATUS_COLOR.full;
+    if (pct >= 0.5) return STATUS_COLOR.partial;
+    return STATUS_COLOR.under;
   };
   const heatColors = Object.fromEntries(Object.keys(weeklyGoals).map(k => [k, colorFor(k)]));
 
@@ -248,9 +257,9 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
           {/* LEGEND — color key */}
           <div style={{ display:'flex', gap: 12, justifyContent:'center', marginBottom: 12, flexWrap:'wrap' }}>
             {[
-              { c: 'var(--accent)',    glow: 'rgba(var(--accent-bloom-rgb, var(--accent-rgb)), 0.55)', label: '100%+' },
-              { c: 'var(--gold)',      glow: 'rgba(var(--gold-rgb), 0.55)',                            label: '50–99%' },
-              { c: '#B86A6A',          glow: 'rgba(184, 106, 106, 0.55)',                              label: '< 50%' },
+              { c: STATUS_COLOR.full,    glow: 'rgba(0, 168, 120, 0.55)',  label: '100%+' },
+              { c: STATUS_COLOR.partial, glow: 'rgba(201, 168, 76, 0.55)', label: '50–99%' },
+              { c: STATUS_COLOR.under,   glow: 'rgba(139, 26, 26, 0.55)',  label: '< 50%' },
             ].map(l => (
               <div key={l.label} style={{ display:'flex', alignItems:'center', gap: 8 }}>
                 <span style={{

@@ -230,17 +230,20 @@ function LineChart({ data, color = 'var(--green)', width = 320, height = 100, fi
 // Small body silhouette w/ heatmap (deep jewel tones, volumetric "wet anatomy" look).
 // `groups` maps muscle key -> hex color OR status keyword ('green'|'yellow'|'red'|'grey').
 function BodyHeatmap({ groups, view = 'front', size = 1 }) {
+  // Semantic muscle-status colors — fixed across ALL themes.
+  // These never use var(--accent)/var(--gold) because they mean
+  // "goal reached / partial / under / zero", not brand accent.
   const STATUS = {
-    green:  '#006B4D', // 100%+ → deep forest emerald
-    yellow: '#8C7233', // 50–99% → deep antique gold
-    red:    '#5C0F0F', // <50%  → deep burgundy
-    grey:   '#1F4A6E', // dormant → cool anatomical blue
+    green:  '#00A878', // 100%+ → emerald green
+    yellow: '#C9A84C', // 50–99% → warm gold
+    red:    '#8B1A1A', // <50%   → deep crimson
+    grey:   '#1a1a1a', // 0 sets → near-black
   };
   const GLOW = {
-    green:  'rgba(0,255,170,0.85)',
-    yellow: 'rgba(230,190,90,0.75)',
-    red:    'rgba(220,40,40,0.70)',
-    grey:   'rgba(31,74,110,0)',
+    green:  'rgba(0,168,120,0.70)',
+    yellow: 'rgba(201,168,76,0.65)',
+    red:    'rgba(139,26,26,0.55)',
+    grey:   'rgba(0,0,0,0)',
   };
   const g = (k) => {
     const v = groups[k];
