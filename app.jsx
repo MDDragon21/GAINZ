@@ -35,6 +35,15 @@ const THEMES = {
     accent: '#C97A95', accentRgb: '201, 122, 149',
     cardRgb: '50, 22, 32',
   },
+  gold: {
+    label: 'Gold',
+    bg: '#0a0800', bgDeep: '#060500',
+    accent: '#B8860B', accentRgb: '184, 134, 11',
+    cardRgb: '40, 30, 5',
+    // Warm amber bloom (NOT the reward --gold #C9A84C, which is reserved
+    // for streaks/badges and stays the same across all themes).
+    glowRgb: '255, 200, 50', glowAlpha: 0.08,
+  },
 };
 const THEME_KEYS = Object.keys(THEMES);
 function resolveTheme(key) { return THEMES[key] ? key : 'forest'; }
