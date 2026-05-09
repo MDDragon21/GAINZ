@@ -17,9 +17,11 @@ const NAV = [
 const THEMES = {
   forest: {
     label: 'Forest',
-    bg: '#080f0a', bgDeep: '#04080a',
-    accent: '#4A9B6E', accentRgb: '74, 155, 110',
+    bg: '#060d09', bgDeep: '#030806',
+    accent: '#006B4D', accentRgb: '0, 107, 77',
     cardRgb: '20, 40, 25',
+    // Bright emerald used only for subtle bloom/glow (not solid fills).
+    glowRgb: '0, 255, 170', glowAlpha: 0.08,
   },
   ocean: {
     label: 'Ocean',
@@ -106,6 +108,15 @@ function AppShell({ user }) {
     r.setProperty('--accent-rgb',  T.accentRgb);
     r.setProperty('--accent-soft', `rgba(${T.accentRgb}, 0.14)`);
     r.setProperty('--accent-glow', `rgba(${T.accentRgb}, 0.40)`);
+    // Bright bloom used by glass card rim + CTA halo. Falls back to accent
+    // when a theme doesn't define a separate bloom hue.
+    if (T.glowRgb) {
+      r.setProperty('--accent-bloom-rgb', T.glowRgb);
+      r.setProperty('--accent-bloom', `rgba(${T.glowRgb}, ${T.glowAlpha ?? 0.08})`);
+    } else {
+      r.setProperty('--accent-bloom-rgb', T.accentRgb);
+      r.setProperty('--accent-bloom', `rgba(${T.accentRgb}, 0.18)`);
+    }
     r.setProperty('--card-rgb',    T.cardRgb);
     r.setProperty('--card',        `rgba(${T.cardRgb}, 0.55)`);
     r.setProperty('--card-2',      `rgba(${T.cardRgb}, 0.65)`);

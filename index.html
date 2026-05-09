@@ -133,7 +133,7 @@
     box-shadow:
       0 1px 0 rgba(255,255,255,0.06) inset,
       0 0 0 1px rgba(var(--accent-rgb), 0.05),
-      0 0 24px rgba(var(--accent-rgb), 0.10),
+      0 0 24px rgba(var(--accent-bloom-rgb, var(--accent-rgb)), 0.18),
       0 18px 40px rgba(0,0,0,0.55),
       0 2px 6px rgba(0,0,0,0.30);
     position: relative;
@@ -195,19 +195,21 @@
   @keyframes softPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
   @keyframes spinSlow { to { transform: rotate(360deg); } }
 
-  /* PRIMARY CTA — breathing glow + sweeping shine */
+  /* PRIMARY CTA — breathing glow + sweeping shine
+     Outer bloom uses bright bloom hue (falls back to accent in themes
+     without a separate bloom). Solid base shadow stays accent-tinted. */
   @keyframes ctaPulse {
     0%, 100% {
       box-shadow:
         0 0 0 0 rgba(var(--accent-rgb),0.45),
-        0 0 28px rgba(var(--accent-rgb),0.30),
+        0 0 28px rgba(var(--accent-bloom-rgb, var(--accent-rgb)),0.22),
         0 12px 30px rgba(0,0,0,0.55),
         inset 0 1px 0 rgba(255,255,255,0.20);
     }
     50% {
       box-shadow:
         0 0 0 10px rgba(var(--accent-rgb),0),
-        0 0 56px rgba(var(--accent-rgb),0.55),
+        0 0 56px rgba(var(--accent-bloom-rgb, var(--accent-rgb)),0.45),
         0 14px 36px rgba(0,0,0,0.55),
         inset 0 1px 0 rgba(255,255,255,0.30);
     }
