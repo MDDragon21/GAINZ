@@ -271,12 +271,13 @@ function AppShell({ user }) {
   return (
     <>
       <div style={{
-        position: 'fixed', inset: 0,
-        background: 'var(--bg)',
-        color: 'var(--txt)',
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        background: 'var(--bg)',
+        color: 'var(--txt)',
       }}>
         {/* CINEMATIC GYM ATMOSPHERE — amber light streaks + deep teal pools + theme halo */}
         <div style={{
@@ -340,6 +341,7 @@ function AppShell({ user }) {
           overflowY: 'auto',
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
           paddingTop:    'calc(env(safe-area-inset-top, 0px) + 16px)',
           paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
           paddingLeft:   'env(safe-area-inset-left, 0px)',

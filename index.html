@@ -55,19 +55,32 @@
     --g1: var(--accent);
     --g2: var(--accent);
   }
-  html, body, #root {
-  height: 100dvh;
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
-  html, body {
-    background: var(--bg-deep);
+  /* Android Chrome / iOS Safari dynamic-viewport lock.
+     Position fixed on html/body/#root prevents document scroll,
+     so the address bar hide/show can never reflow the layout. */
+  html {
+    height: 100%;
+    overflow: hidden;
+    background: #060d09;
+  }
+  body {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    margin: 0; padding: 0;
+    background: #060d09;
     color: var(--txt);
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  #root {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #060d09;
   }
 
   * { box-sizing: border-box; }
