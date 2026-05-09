@@ -43,7 +43,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
     if (!goal) return 'rgba(255,255,255,0.18)';     // no goal set
     if (actual <= 0) return 'rgba(255,255,255,0.18)'; // grey: 0 sets logged
     const pct = actual / goal;
-    if (pct >= 1) return 'var(--accent-primary)';
+    if (pct >= 1) return 'var(--accent)';
     if (pct >= 0.5) return '#FFD700';
     return '#EF4444';
   };
@@ -248,12 +248,19 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
           {/* LEGEND — color key */}
           <div style={{ display:'flex', gap: 12, justifyContent:'center', marginBottom: 12, flexWrap:'wrap' }}>
             {[
-              { c:'var(--accent-primary)', label:'100%+' },
-              { c:'#FFD700', label:'50–99%' },
-              { c:'#EF4444', label:'< 50%' },
+              { c: 'var(--accent)',    glow: 'rgba(var(--accent-bloom-rgb, var(--accent-rgb)), 0.55)', label: '100%+' },
+              { c: 'var(--gold)',      glow: 'rgba(var(--gold-rgb), 0.55)',                            label: '50–99%' },
+              { c: '#B86A6A',          glow: 'rgba(184, 106, 106, 0.55)',                              label: '< 50%' },
             ].map(l => (
-              <div key={l.label} style={{ display:'flex', alignItems:'center', gap: 6 }}>
-                <div style={{ width: 7, height: 7, borderRadius: 7, background: l.c, boxShadow: `0 0 6px ${l.c}80` }}/>
+              <div key={l.label} style={{ display:'flex', alignItems:'center', gap: 8 }}>
+                <span style={{
+                  display:'inline-block',
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: l.c,
+                  opacity: 1,
+                  boxShadow: `0 0 8px ${l.glow}`,
+                  flexShrink: 0,
+                }}/>
                 <div style={{ fontSize: 10, color:'var(--txt-3)', fontFamily:'Inter, sans-serif', letterSpacing: 0.6 }}>{l.label}</div>
               </div>
             ))}
