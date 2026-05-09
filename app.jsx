@@ -264,6 +264,8 @@ function AppShell({ user }) {
         background: 'var(--bg)',
         color: 'var(--txt)',
         overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         {/* CINEMATIC GYM ATMOSPHERE — amber light streaks + deep teal pools + theme halo */}
         <div style={{
@@ -320,11 +322,15 @@ function AppShell({ user }) {
           {t.grain && <div className="grain" style={{ position:'absolute', inset: 0 }}/>}
         </div>
         <div className="screen-scroll" style={{
-          position:'absolute', inset: 0,
+          position: 'relative',
           zIndex: 2,
-          overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
           paddingTop:    'calc(env(safe-area-inset-top, 0px) + 16px)',
-          paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
           paddingLeft:   'env(safe-area-inset-left, 0px)',
           paddingRight:  'env(safe-area-inset-right, 0px)',
         }}>
@@ -377,12 +383,13 @@ function BottomNav({ active, onChange }) {
 
   return (
     <div style={{
-      position:'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
+      position:'fixed', bottom: 0, left: 0, right: 0, zIndex: 99999,
       paddingTop: 10,
-      paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
+      paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))',
       paddingLeft:  'env(safe-area-inset-left, 0px)',
       paddingRight: 'env(safe-area-inset-right, 0px)',
       background:'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.7) 100%)',
+      pointerEvents: 'auto',
     }}>
       <div className="glass" style={{
         margin:'0 14px',
