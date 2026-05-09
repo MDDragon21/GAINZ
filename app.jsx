@@ -324,7 +324,7 @@ function AppShell({ user }) {
           zIndex: 2,
           overflowY: 'auto', WebkitOverflowScrolling: 'touch',
           paddingTop:    'calc(env(safe-area-inset-top, 0px) + 16px)',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
+          paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))',
           paddingLeft:   'env(safe-area-inset-left, 0px)',
           paddingRight:  'env(safe-area-inset-right, 0px)',
         }}>
@@ -377,7 +377,7 @@ function BottomNav({ active, onChange }) {
 
   return (
     <div style={{
-      position:'absolute', bottom: 0, left: 0, right: 0, zIndex: 50,
+      position:'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
       paddingTop: 10,
       paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
       paddingLeft:  'env(safe-area-inset-left, 0px)',
