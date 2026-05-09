@@ -63,7 +63,9 @@ function ScreenBody({ data, setData, embedded = false }) {
   const currentBmiCat = bmiCategory(data.bmi);
   const previewBmiCat = bmiCategory(previewBmi);
 
-  // Toast after save
+  // Toast after save (message + visibility)
+  const [toastMsg, setToastMsg]     = React.useState('Gespeichert ✓');
+  const [toastTone, setToastTone]   = React.useState('ok'); // 'ok' | 'err'
   const [toastUntil, setToastUntil] = React.useState(0);
   const [, forceTick] = React.useReducer(x => x + 1, 0);
   const toastVisible = Date.now() < toastUntil;
@@ -72,6 +74,11 @@ function ScreenBody({ data, setData, embedded = false }) {
     const id = setTimeout(forceTick, Math.max(0, toastUntil - Date.now()) + 50);
     return () => clearTimeout(id);
   }, [toastUntil]);
+  const showToast = (msg, tone = 'ok', ms = 2200) => {
+    setToastMsg(msg);
+    setToastTone(tone);
+    setToastUntil(Date.now() + ms);
+  };
 
   const lastEntryAt = weightLogs.length
     ? new Date(weightLogs[weightLogs.length - 1].logged_at)
@@ -192,11 +199,16 @@ function ScreenBody({ data, setData, embedded = false }) {
               }}>Abbrechen</button>
               <button
                 disabled={!Number.isFinite(draftTarget)}
-                onClick={() => {
+                onClick={async () => {
                   if (!Number.isFinite(draftTarget)) return;
                   const clamped = +Math.min(300, Math.max(30, draftTarget)).toFixed(1);
-                  setData({ ...data, targetWeight: clamped });
-                  setShowTargetEdit(false);
+                  try {
+                    await setData({ ...data, targetWeight: clamped });
+                    setShowTargetEdit(false);
+                    showToast('Zielgewicht gespeichert ✓');
+                  } catch (e) {
+                    showToast('Zielgewicht konnte nicht gespeichert werden · ' + (e?.message || ''), 'err', 3500);
+                  }
                 }}
                 style={{
                   flex: 2, padding:'12px',
@@ -212,10 +224,15 @@ function ScreenBody({ data, setData, embedded = false }) {
             </div>
             {targetWeight && (
               <button
-                onClick={() => {
-                  setData({ ...data, targetWeight: null });
-                  setDraftTarget(NaN);
-                  setShowTargetEdit(false);
+                onClick={async () => {
+                  try {
+                    await setData({ ...data, targetWeight: null });
+                    setDraftTarget(NaN);
+                    setShowTargetEdit(false);
+                    showToast('Zielgewicht entfernt ✓');
+                  } catch (e) {
+                    showToast('Konnte nicht entfernen · ' + (e?.message || ''), 'err', 3500);
+                  }
                 }}
                 style={{
                   marginTop: 10, width:'100%', padding:'10px',
@@ -511,9 +528,13 @@ function ScreenBody({ data, setData, embedded = false }) {
                 : (Number.isFinite(data.height) ? data.height : null);
               const w = Number.isFinite(newWeight) ? +newWeight.toFixed(1) : data.weight;
               const bmi = (h && w) ? +(w / Math.pow(h/100, 2)).toFixed(1) : data.bmi;
-              await setData({ ...data, weight: w, height: h, bmi });
-              setShowSheet(false);
-              setToastUntil(Date.now() + 2200);
+              try {
+                await setData({ ...data, weight: w, height: h, bmi });
+                setShowSheet(false);
+                showToast('Gespeichert ✓');
+              } catch (e) {
+                showToast('Konnte nicht speichern · ' + (e?.message || ''), 'err', 3500);
+              }
             }}>Speichern</CTA>
           </div>
         </div>

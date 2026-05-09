@@ -159,20 +159,17 @@ function AppShell({ user }) {
       catch (e) { console.error('height save failed', e); }
     }
 
-    // Target weight changed → persist to profile (best-effort: tolerate stale schema cache)
+    // Target weight changed → persist to profile.
+    // Throw on failure so Körper screen can surface a real error
+    // toast instead of silently mirroring locally (was masking
+    // schema-cache and column-missing bugs).
     if (computed.targetWeight !== local.targetWeight) {
-      try {
-        await window.gainz.profile.update(user.id, {
-          target_weight: (typeof computed.targetWeight === 'number' && Number.isFinite(computed.targetWeight))
-            ? computed.targetWeight : null,
-        });
-        await reload();
-        return;
-      } catch (e) {
-        console.warn('target_weight save skipped (schema cache?):', e?.message || e);
-        // Still mirror locally so UI reflects intent until cache refreshes.
-        setLocal(d => d ? ({ ...d, targetWeight: computed.targetWeight }) : d);
-      }
+      await window.gainz.profile.update(user.id, {
+        target_weight: (typeof computed.targetWeight === 'number' && Number.isFinite(computed.targetWeight))
+          ? computed.targetWeight : null,
+      });
+      await reload();
+      return;
     }
 
     // Weight changed → log to weight_logs + reload from server
