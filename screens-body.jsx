@@ -95,13 +95,14 @@ function ScreenBody({ data, setData, embedded = false }) {
           position:'absolute', top: 12, left:'50%', transform:'translateX(-50%)',
           zIndex: 95,
           padding:'10px 18px', borderRadius: 999,
-          background:'rgba(34,197,94,0.18)',
-          border:'1px solid rgba(34,197,94,0.45)',
-          color:'#22C55E', fontSize: 13, fontWeight: 700,
-          fontFamily:'Inter, sans-serif', letterSpacing: 0.6,
-          boxShadow:'0 8px 24px rgba(34,197,94,0.25)',
-          whiteSpace:'nowrap',
-        }}>Gespeichert ✓</div>
+          background: toastTone === 'err' ? 'rgba(184,106,106,0.18)' : 'rgba(34,197,94,0.18)',
+          border:  `1px solid ${toastTone === 'err' ? 'rgba(184,106,106,0.45)' : 'rgba(34,197,94,0.45)'}`,
+          color:   toastTone === 'err' ? '#B86A6A' : '#22C55E',
+          fontSize: 13, fontWeight: 700,
+          fontFamily:'Inter, sans-serif', letterSpacing: 0.4,
+          boxShadow:`0 8px 24px ${toastTone === 'err' ? 'rgba(184,106,106,0.25)' : 'rgba(34,197,94,0.25)'}`,
+          maxWidth:'90%', textAlign:'center',
+        }}>{toastMsg}</div>
       )}
       {!embedded && <ScreenHeader title="Körper & Fortschritt" sub={subText}/>}
 
