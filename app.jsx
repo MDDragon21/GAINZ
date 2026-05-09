@@ -159,15 +159,40 @@ function AppShell({ user }) {
       catch (e) { console.error('height save failed', e); }
     }
 
-    // Target weight changed → persist to profile.
-    // Throw on failure so Körper screen can surface a real error
-    // toast instead of silently mirroring locally (was masking
-    // schema-cache and column-missing bugs).
+    // Target weight changed → persist + verify by reading back.
+    // Surfaces real errors (column missing / RLS / schema cache stale).
     if (computed.targetWeight !== local.targetWeight) {
-      await window.gainz.profile.update(user.id, {
-        target_weight: (typeof computed.targetWeight === 'number' && Number.isFinite(computed.targetWeight))
-          ? computed.targetWeight : null,
-      });
+      const target = (typeof computed.targetWeight === 'number' && Number.isFinite(computed.targetWeight))
+        ? computed.targetWeight : null;
+      console.log('[target_weight] save attempt:', target, 'for user', user.id);
+
+      const { error: upErr } = await window.sb.from('profiles')
+        .update({ target_weight: target }).eq('user_id', user.id);
+      if (upErr) {
+        console.error('[target_weight] update error:', upErr);
+        throw new Error(`DB-Fehler: ${upErr.message}. Spalte target_weight existiert? SQL: ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS target_weight numeric(5,2);`);
+      }
+
+      // Read back to verify the row actually changed.
+      const { data: row, error: selErr } = await window.sb.from('profiles')
+        .select('target_weight').eq('user_id', user.id).single();
+      if (selErr) { console.error('[target_weight] readback error:', selErr); throw selErr; }
+      console.log('[target_weight] DB row after save:', row);
+
+      const dbVal = row?.target_weight;
+      if (target === null) {
+        if (dbVal != null) {
+          throw new Error(`Konnte Zielgewicht nicht entfernen (DB-Wert ist immer noch ${dbVal}).`);
+        }
+      } else {
+        if (dbVal == null) {
+          throw new Error('Update lief durch, aber DB-Wert ist NULL. Schema-Cache veraltet? Supabase → Settings → API → "Reload schema cache" klicken.');
+        }
+        if (Math.abs(Number(dbVal) - target) > 0.01) {
+          throw new Error(`DB-Wert (${dbVal}) weicht vom gespeicherten Wert (${target}) ab.`);
+        }
+      }
+
       await reload();
       return;
     }
