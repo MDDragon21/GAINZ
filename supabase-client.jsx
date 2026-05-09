@@ -177,6 +177,24 @@ const gainz = {
       if (error) throw error;
       return data;
     },
+    async monthWithMuscles(userId, year, monthIndex0) {
+      const start = new Date(year, monthIndex0, 1);
+      const end   = new Date(year, monthIndex0 + 1, 1);
+      const { data: ses, error } = await sb.from('workout_sessions')
+        .select('*').eq('user_id', userId).eq('status', 'done')
+        .gte('started_at', start.toISOString())
+        .lt('started_at', end.toISOString())
+        .order('started_at', { ascending: false });
+      if (error) throw error;
+      if (!ses?.length) return [];
+      const ids = ses.map(s => s.id);
+      const { data: rows, error: e2 } = await sb.from('workout_session_muscles')
+        .select('*').in('session_id', ids);
+      if (e2) throw e2;
+      const byId = {};
+      (rows || []).forEach(r => { (byId[r.session_id] ||= []).push(r); });
+      return ses.map(s => ({ ...s, muscles: byId[s.id] || [] }));
+    },
   },
 
   leaderboard: {

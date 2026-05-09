@@ -83,6 +83,9 @@ function ScreenTraining({ data, setData, user, reload }) {
 
   const muscleList = ['Brust','Rücken','Schultern','Bizeps','Trizeps','Bauch','Beine'];
 
+  // Tab state — 'week' = log + plan (existing), 'history' = Verlauf
+  const [tab, setTab] = React.useState('week');
+
   const onFinish = async () => {
     if (saving || !user) return;
     setError(null);
@@ -202,7 +205,30 @@ function ScreenTraining({ data, setData, user, reload }) {
 
   return (
     <div data-screen-label="02 Training">
-      <ScreenHeader title="Trainingsplan" sub={headerSub}/>
+      <ScreenHeader title="Trainingsplan" sub={tab === 'week' ? headerSub : 'Verlauf · alle Trainings'}/>
+
+      {/* TABS */}
+      <Section style={{ marginTop: 0 }}>
+        <div style={{
+          display:'flex', gap: 4, padding: 4,
+          background:'rgba(255,255,255,0.03)',
+          borderRadius: 12, border:'1px solid var(--line)',
+        }}>
+          {[['week','Diese Woche'], ['history','Verlauf']].map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)} style={{
+              flex: 1, padding:'10px', border:'none', borderRadius: 9,
+              background: tab === k ? 'var(--card-2)' : 'transparent',
+              color: tab === k ? 'var(--accent)' : 'var(--txt-2)',
+              fontSize: 13, fontWeight: 600, cursor:'pointer',
+              fontFamily:'inherit',
+              boxShadow: tab === k ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 0 14px rgba(var(--accent-bloom-rgb, var(--accent-rgb)),0.15)' : 'none',
+              transition: 'all .15s',
+            }}>{l}</button>
+          ))}
+        </div>
+      </Section>
+
+      {tab === 'history' ? <VerlaufTab user={user}/> : <>
 
       {/* WEEK GRID */}
       <Section>
@@ -359,8 +385,310 @@ function ScreenTraining({ data, setData, user, reload }) {
         </>
       )}
 
-
+      </>}
     </div>
+  );
+}
+
+// ─── VERLAUF TAB ───────────────────────────────────────────────────────────
+const MUSCLE_LABEL_DE = {
+  brust: 'Brust', ruecken: 'Rücken', schultern: 'Schultern',
+  bizeps: 'Bizeps', trizeps: 'Trizeps', bauch: 'Bauch', beine: 'Beine',
+};
+
+function VerlaufTab({ user }) {
+  const [monthDate, setMonthDate] = React.useState(() => {
+    const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); return d;
+  });
+  const [sessions, setSessions] = React.useState(null);
+  const [expandedId, setExpandedId] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    setSessions(null);
+    (async () => {
+      try {
+        const data = await window.gainz.sessions.monthWithMuscles(
+          user.id, monthDate.getFullYear(), monthDate.getMonth(),
+        );
+        if (alive) setSessions(data);
+      } catch (e) { console.error('verlauf load failed', e); if (alive) setSessions([]); }
+    })();
+    return () => { alive = false; };
+  }, [user, monthDate]);
+
+  const monthLabel = monthDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+  const goPrev = () => { const d = new Date(monthDate); d.setMonth(d.getMonth() - 1); setMonthDate(d); };
+  const goNext = () => { const d = new Date(monthDate); d.setMonth(d.getMonth() + 1); setMonthDate(d); };
+  const isCurrentMonth = (() => {
+    const now = new Date();
+    return monthDate.getFullYear() === now.getFullYear() && monthDate.getMonth() === now.getMonth();
+  })();
+
+  // Per-day totals
+  const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
+  const dayBars = Array.from({ length: daysInMonth }, () => 0);
+  let totalSessions = 0, totalSets = 0;
+  (sessions || []).forEach(s => {
+    const d = new Date(s.started_at);
+    if (d.getFullYear() !== monthDate.getFullYear() || d.getMonth() !== monthDate.getMonth()) return;
+    totalSessions += 1;
+    const ds = (s.muscles || []).reduce((a, m) => a + Number(m.sets), 0);
+    totalSets += ds;
+    dayBars[d.getDate() - 1] += ds;
+  });
+  const trainedDays = dayBars.filter(v => v > 0).length;
+  const avgPerDay = trainedDays > 0 ? Math.round(totalSets / trainedDays) : 0;
+  const maxBar = Math.max(...dayBars, 1);
+
+  // Per-session per-muscle delta vs the prior session (within loaded month)
+  // that hit the same muscle.
+  const asc = (sessions || []).slice().sort((a, b) => new Date(a.started_at) - new Date(b.started_at));
+  const lastByMuscle = {};
+  const deltaMap = {}; // session_id -> { muscle: delta }
+  asc.forEach(s => {
+    const dm = {};
+    (s.muscles || []).forEach(m => {
+      const prev = lastByMuscle[m.muscle];
+      if (prev != null) dm[m.muscle] = Number(m.sets) - prev;
+      lastByMuscle[m.muscle] = Number(m.sets);
+    });
+    deltaMap[s.id] = dm;
+  });
+
+  return (
+    <>
+      {/* MONTH OVERVIEW */}
+      <Section>
+        <Card padding={16}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 14 }}>
+            <button onClick={goPrev} aria-label="Vorheriger Monat" style={navBtnStyle}>←</button>
+            <div className="serif" style={{
+              fontSize: 22, fontStyle:'italic', fontWeight: 600,
+              color:'var(--txt)', textTransform:'capitalize',
+            }}>{monthLabel}</div>
+            <button onClick={goNext} aria-label="Nächster Monat" disabled={isCurrentMonth} style={{
+              ...navBtnStyle,
+              opacity: isCurrentMonth ? 0.30 : 1,
+              cursor: isCurrentMonth ? 'not-allowed' : 'pointer',
+            }}>→</button>
+          </div>
+
+          {/* DAILY BAR CHART */}
+          <div style={{
+            display:'flex', alignItems:'flex-end', gap: 2,
+            height: 64, marginBottom: 10,
+          }}>
+            {dayBars.map((v, i) => (
+              <div key={i} title={v > 0 ? `${i+1}. · ${v} Sätze` : `${i+1}. · keine`} style={{
+                flex: 1, minWidth: 2,
+                height: v > 0 ? `${(v / maxBar) * 100}%` : 2,
+                minHeight: v > 0 ? 4 : 2,
+                background: v > 0 ? 'var(--accent)' : 'rgba(255,255,255,0.05)',
+                borderRadius: 2,
+                boxShadow: v > 0 ? '0 0 6px rgba(var(--accent-bloom-rgb, var(--accent-rgb)),0.30)' : 'none',
+                transition: 'height .25s',
+              }}/>
+            ))}
+          </div>
+          <div style={{
+            display:'flex', justifyContent:'space-between',
+            fontSize: 9, color:'var(--txt-3)',
+            fontFamily:'Inter, sans-serif', letterSpacing: 0.6,
+            marginBottom: 14,
+          }}>
+            <span>1.</span><span>{Math.ceil(daysInMonth/2)}.</span><span>{daysInMonth}.</span>
+          </div>
+
+          {/* SUMMARY ROW */}
+          <div style={{
+            display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 8,
+            paddingTop: 12, borderTop:'1px solid var(--line)',
+          }}>
+            {[
+              { label:'Sessions',    val: totalSessions },
+              { label:'Gesamtsätze', val: totalSets },
+              { label:'Ø Sets/Tag',  val: avgPerDay },
+            ].map(s => (
+              <div key={s.label} style={{ textAlign:'center' }}>
+                <div className="ticker serif" style={{
+                  fontSize: 22, fontWeight: 600, fontStyle:'italic',
+                  color:'var(--accent)', lineHeight: 1,
+                }}>{s.val}</div>
+                <div className="label-cap" style={{ marginTop: 4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </Section>
+
+      {/* SESSION LIST */}
+      {sessions === null ? (
+        <Section><Card padding={20} style={{ textAlign:'center', color:'var(--txt-2)' }}>Lade Verlauf…</Card></Section>
+      ) : sessions.length === 0 ? (
+        <Section style={{ marginBottom: 24 }}>
+          <Card padding={24} style={{ textAlign:'center' }}>
+            <div style={{ fontSize: 13, color:'var(--txt-2)', lineHeight: 1.55 }}>
+              Noch keine Trainings aufgezeichnet — leg los und dein Verlauf erscheint hier.
+            </div>
+          </Card>
+        </Section>
+      ) : (
+        <div style={{ marginBottom: 24 }}>
+          {sessions.map(s => (
+            <SessionCard
+              key={s.id}
+              session={s}
+              expanded={expandedId === s.id}
+              onToggle={() => setExpandedId(expandedId === s.id ? null : s.id)}
+              deltas={deltaMap[s.id] || {}}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+const navBtnStyle = {
+  width: 36, height: 36, borderRadius: 10,
+  background:'rgba(var(--accent-rgb),0.10)',
+  border:'1px solid rgba(var(--accent-rgb),0.30)',
+  color:'var(--accent)', fontSize: 16, fontWeight: 700,
+  cursor:'pointer', fontFamily:'inherit',
+  display:'flex', alignItems:'center', justifyContent:'center',
+};
+
+function SessionCard({ session, expanded, onToggle, deltas }) {
+  const dt = new Date(session.started_at);
+  const dateLabel = dt.toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long' });
+  const totalSets = (session.muscles || []).reduce((a, m) => a + Number(m.sets), 0);
+  const noteSnippet = session.note ? (session.note.length > 80 ? session.note.slice(0,80) + '…' : session.note) : null;
+
+  return (
+    <Section style={{ marginBottom: 10 }}>
+      <Card padding={14} onClick={onToggle} style={{ cursor:'pointer' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="label-cap" style={{ marginBottom: 8, color:'var(--txt-2)' }}>{dateLabel}</div>
+
+            {/* Muscle pills */}
+            {session.muscles && session.muscles.length > 0 && (
+              <div style={{ display:'flex', flexWrap:'wrap', gap: 4, marginBottom: 8 }}>
+                {session.muscles.map(m => (
+                  <span key={m.id || m.muscle} style={{
+                    padding:'3px 9px', borderRadius: 999,
+                    background:'rgba(var(--accent-rgb),0.10)',
+                    border:'1px solid rgba(var(--accent-rgb),0.25)',
+                    color:'var(--accent)', fontSize: 10, fontWeight: 600,
+                    fontFamily:'Inter, sans-serif', letterSpacing: 0.4,
+                  }}>{MUSCLE_LABEL_DE[m.muscle] || m.muscle}</span>
+                ))}
+              </div>
+            )}
+
+            <div style={{ fontSize: 12, color:'var(--txt-2)', display:'flex', alignItems:'center', gap: 8 }}>
+              <span><span className="ticker" style={{ color:'var(--txt)', fontWeight: 700 }}>{totalSets}</span> Sätze</span>
+              {session.mood && <span style={{ fontSize: 16 }}>{session.mood}</span>}
+              {session.duration_min && <span>{session.duration_min} min</span>}
+            </div>
+
+            {noteSnippet && (
+              <div style={{
+                fontStyle:'italic', fontSize: 12, color:'var(--txt-3)',
+                marginTop: 8, lineHeight: 1.45,
+              }}>„{noteSnippet}"</div>
+            )}
+          </div>
+          <div style={{
+            flexShrink: 0,
+            color:'var(--txt-3)',
+            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform .2s',
+          }}>
+            <Icon.chevronDown size={16} color="var(--txt-3)"/>
+          </div>
+        </div>
+
+        {expanded && (
+          <div onClick={(e) => e.stopPropagation()} style={{
+            marginTop: 14, paddingTop: 14,
+            borderTop: '1px solid var(--line)',
+            display:'flex', flexDirection:'column', gap: 14,
+          }}>
+            {/* Muscle breakdown with progression */}
+            <div>
+              <div className="label-cap" style={{ marginBottom: 8 }}>Muskelgruppen</div>
+              <div style={{ display:'grid', gap: 6 }}>
+                {(session.muscles || []).map(m => {
+                  const d = deltas[m.muscle];
+                  const arrowColor = d == null || d === 0 ? 'var(--txt-3)' : (d > 0 ? '#00A878' : '#B86A6A');
+                  return (
+                    <div key={m.id || m.muscle} style={{
+                      display:'flex', alignItems:'center', gap: 10,
+                      padding:'8px 10px', borderRadius: 10,
+                      background:'rgba(255,255,255,0.02)',
+                      border:'1px solid var(--line)',
+                    }}>
+                      <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{MUSCLE_LABEL_DE[m.muscle] || m.muscle}</div>
+                      <div className="ticker" style={{ fontSize: 13, fontWeight: 700, color:'var(--accent)' }}>
+                        {m.sets} <span style={{ color:'var(--txt-3)', fontWeight: 500 }}>Sets</span>
+                      </div>
+                      {d != null && d !== 0 && (
+                        <div style={{
+                          fontSize: 10, fontWeight: 700,
+                          fontFamily:'Inter, sans-serif', letterSpacing: 0.4,
+                          color: arrowColor,
+                          padding:'3px 8px', borderRadius: 999,
+                          background: d > 0 ? 'rgba(0,168,120,0.10)' : 'rgba(184,106,106,0.10)',
+                          border: `1px solid ${d > 0 ? 'rgba(0,168,120,0.30)' : 'rgba(184,106,106,0.30)'}`,
+                          whiteSpace:'nowrap',
+                        }}>
+                          {d > 0 ? '↑' : '↓'} {Math.abs(d)} {d > 0 ? 'mehr' : 'weniger'}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mood */}
+            {session.mood && (
+              <div>
+                <div className="label-cap" style={{ marginBottom: 8 }}>Stimmung</div>
+                <div style={{ fontSize: 36, lineHeight: 1 }}>{session.mood}</div>
+              </div>
+            )}
+
+            {/* Notiz */}
+            {session.note && (
+              <div>
+                <div className="label-cap" style={{ marginBottom: 8 }}>Notiz</div>
+                <div style={{ fontSize: 13, lineHeight: 1.55, color:'var(--txt)' }}>{session.note}</div>
+              </div>
+            )}
+
+            {/* Wins */}
+            {session.wins && (
+              <div>
+                <div className="label-cap" style={{ marginBottom: 8 }}>Was gut lief</div>
+                <div style={{ fontSize: 13, lineHeight: 1.55, color:'var(--txt)' }}>{session.wins}</div>
+              </div>
+            )}
+
+            {/* Hard */}
+            {session.hard && (
+              <div>
+                <div className="label-cap" style={{ marginBottom: 8 }}>Was schwer war</div>
+                <div style={{ fontSize: 13, lineHeight: 1.55, color:'var(--txt)' }}>{session.hard}</div>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+    </Section>
   );
 }
 
