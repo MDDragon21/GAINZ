@@ -75,19 +75,19 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
           <button onClick={openProfile} style={{
             width:'100%', textAlign:'left', cursor:'pointer',
             padding:'14px 16px', borderRadius: 14,
-            background:'rgba(61,128,104,0.08)',
-            border:'1px solid rgba(61,128,104,0.30)',
+            background:'rgba(var(--accent-rgb),0.08)',
+            border:'1px solid rgba(var(--accent-rgb),0.30)',
             color:'var(--txt)', fontFamily:'inherit',
             display:'flex', alignItems:'center', gap: 12,
           }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background:'rgba(61,128,104,0.14)', border:'1px solid rgba(61,128,104,0.30)',
+              background:'rgba(var(--accent-rgb),0.14)', border:'1px solid rgba(var(--accent-rgb),0.30)',
               display:'flex', alignItems:'center', justifyContent:'center',
               fontSize: 18,
             }}>👋</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color:'#FFFFFF' }}>Leg deinen Anzeigenamen fest</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color:'var(--txt)' }}>Leg deinen Anzeigenamen fest</div>
               <div style={{ fontSize: 11, color:'var(--txt-2)', marginTop: 2 }}>So sehen dich andere auf der Rangliste.</div>
             </div>
             <Icon.chevronRight size={16} color="var(--txt-2)"/>
@@ -101,7 +101,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
           width: '100%', border: 'none', cursor: 'pointer',
           padding: '20px 22px',
           borderRadius: 22,
-          background: 'var(--grad)',
+          background: 'linear-gradient(135deg, rgba(var(--accent-rgb),0.55) 0%, rgba(var(--accent-rgb),1) 100%)',
           display: 'flex', alignItems: 'center', gap: 14,
           textAlign: 'left', color: '#fff',
           position: 'relative', overflow: 'hidden',
@@ -137,7 +137,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
           <div style={{ display:'flex', gap: 10, alignItems:'flex-start' }}>
             <div style={{ color: 'var(--green)', marginTop: 2 }}><Icon.quote size={16}/></div>
             <div>
-              <div style={{ fontStyle:'italic', fontSize: 14, lineHeight: 1.5, color: '#FFFFFF' }}>{dailyQuote.text}</div>
+              <div style={{ fontStyle:'italic', fontSize: 14, lineHeight: 1.5, color: 'var(--txt)' }}>{dailyQuote.text}</div>
               <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 6, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: 1 }}>— {dailyQuote.author}</div>
             </div>
           </div>
@@ -147,32 +147,30 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
       {/* STREAK + WEEKLY GOAL — twin tile */}
       <Section>
         <div style={{ display:'grid', gridTemplateColumns:'1.1fr 1fr', gap: 10 }}>
-          <Card padding={16} style={{
-            background:'#111111',
-            borderColor:'rgba(255,215,0,0.20)',
+          <Card padding={16} gold style={{
             position:'relative', overflow:'hidden',
           }}>
             <div style={{ position:'absolute', right:-10, top:-12, opacity:0.10, animation:'flameFlicker 2.4s ease-in-out infinite' }}>
               <Icon.flame size={86} color="var(--gold)"/>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:6, color:'var(--gold)', fontSize:11, fontWeight:600, letterSpacing:1.4, textTransform:'uppercase', fontFamily:'JetBrains Mono, monospace' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, color:'var(--gold)', fontSize:11, fontWeight:600, letterSpacing:1.4, textTransform:'uppercase', fontFamily:'Inter, sans-serif' }}>
               <Icon.flame size={14} color="var(--gold)" style={{ animation:'flameFlicker 1.6s ease-in-out infinite' }}/>
               Streak
             </div>
-            <div className="ticker" style={{ fontSize: 56, fontWeight: 700, lineHeight: 1, marginTop: 6, color:'#FFF', letterSpacing:-2, position:'relative' }}>
+            <div className="ticker serif" style={{ fontSize: 64, fontWeight: 600, lineHeight: 1, marginTop: 6, color:'var(--gold)', letterSpacing:-1.5, fontStyle:'italic', position:'relative' }}>
               {streak}
               <span style={{
                 position:'absolute', inset:-6, borderRadius:20,
-                background:'radial-gradient(circle, rgba(255,215,0,0.15), transparent 70%)',
+                background:'radial-gradient(circle, rgba(var(--gold-rgb),0.15), transparent 70%)',
                 animation:'softPulse 2s ease-in-out infinite', zIndex:-1
               }}/>
             </div>
             <div style={{ fontSize: 12, color:'var(--txt-2)', marginTop: 4, fontWeight: 500 }}>Tage am Stück</div>
           </Card>
           <Card padding={16}>
-            <div style={{ fontSize:11, fontWeight:600, letterSpacing:1.4, textTransform:'uppercase', color:'var(--txt-2)', fontFamily:'JetBrains Mono, monospace' }}>Wochenziel</div>
-            <div className="ticker" style={{ fontSize: 28, fontWeight: 700, marginTop: 12, lineHeight: 1 }}>
-              {weekDone}<span style={{ color:'var(--txt-3)', fontSize: 18 }}> / {weekGoal}</span>
+            <div className="label-cap">Wochenziel</div>
+            <div className="ticker serif" style={{ fontSize: 36, fontWeight: 600, marginTop: 12, lineHeight: 1, color:'var(--accent)', fontStyle:'italic' }}>
+              {weekDone}<span style={{ color:'var(--txt-3)', fontSize: 22, fontStyle:'normal' }}> / {weekGoal}</span>
             </div>
             <div style={{ fontSize: 11, color:'var(--txt-2)', marginTop: 4, marginBottom: 14 }}>Tage diese Woche</div>
             {weekGoal > 0 ? (
@@ -181,13 +179,13 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
                   <div key={i} style={{
                     flex: 1, height: 8, borderRadius: 8,
                     background: i < weekDone ? 'var(--grad)' : '#2a2a3a',
-                    boxShadow: i < weekDone ? '0 0 10px rgba(61,128,104,0.28)' : 'none',
+                    boxShadow: i < weekDone ? '0 0 10px rgba(var(--accent-rgb),0.28)' : 'none',
                     transition:'background .3s'
                   }}/>
                 ))}
               </div>
             ) : (
-              <div style={{ fontSize: 10, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace', letterSpacing: 1 }}>
+              <div style={{ fontSize: 10, color:'var(--txt-3)', fontFamily:'Inter, sans-serif', letterSpacing: 1 }}>
                 Setze ein Wochenziel im Profil
               </div>
             )}
@@ -200,7 +198,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
         <Card padding={16}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 12 }}>
             <div>
-              <div style={{ fontSize:11, fontWeight:600, letterSpacing:1.4, textTransform:'uppercase', color:'var(--txt-2)', fontFamily:'JetBrains Mono, monospace' }}>Muskelbalance</div>
+              <div style={{ fontSize:11, fontWeight:600, letterSpacing:1.4, textTransform:'uppercase', color:'var(--txt-2)', fontFamily:'Inter, sans-serif' }}>Muskelbalance</div>
               <div style={{ fontSize: 14, marginTop: 4, color:'var(--txt)' }}>Relativ zu deinem Ziel</div>
             </div>
           </div>
@@ -216,7 +214,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
                   color: on ? '#fff' : 'var(--txt-2)',
                   fontSize: 11, fontWeight: 700, cursor:'pointer',
                   fontFamily: 'JetBrains Mono, monospace', textTransform:'uppercase', letterSpacing: 0.8,
-                  boxShadow: on ? '0 0 14px rgba(61,128,104,0.25), 0 0 10px rgba(61,128,104,0.16)' : 'none',
+                  boxShadow: on ? '0 0 14px rgba(var(--accent-rgb),0.25), 0 0 10px rgba(var(--accent-rgb),0.16)' : 'none',
                   transition:'all .15s'
                 }}>{p.label}</button>
               );
@@ -230,15 +228,15 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
               return (
                 <button key={b.id} onClick={() => setView(b.id)} style={{
                   padding: '10px 8px 12px', borderRadius: 14, cursor: 'pointer',
-                  border: active ? '1px solid rgba(61,128,104,0.28)' : '1px solid var(--line)',
-                  background: active ? 'rgba(61,128,104,0.03)' : 'rgba(255,255,255,0.02)',
-                  boxShadow: active ? '0 0 18px rgba(61,128,104,0.16)' : 'none',
+                  border: active ? '1px solid rgba(var(--accent-rgb),0.28)' : '1px solid var(--line)',
+                  background: active ? 'rgba(var(--accent-rgb),0.03)' : 'rgba(255,255,255,0.02)',
+                  boxShadow: active ? '0 0 18px rgba(var(--accent-rgb),0.16)' : 'none',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                   transition: 'all .15s',
                 }}>
                   <BodyHeatmap groups={heatColors} view={b.id} size={0.95}/>
                   <div className={active ? 'grad-text' : ''} style={{
-                    fontSize: 10, fontWeight: 700, fontFamily:'JetBrains Mono, monospace',
+                    fontSize: 10, fontWeight: 700, fontFamily:'Inter, sans-serif',
                     textTransform:'uppercase', letterSpacing: 1.4,
                     color: active ? undefined : 'var(--txt-3)'
                   }}>{b.label}</div>
@@ -256,7 +254,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
             ].map(l => (
               <div key={l.label} style={{ display:'flex', alignItems:'center', gap: 6 }}>
                 <div style={{ width: 7, height: 7, borderRadius: 7, background: l.c, boxShadow: `0 0 6px ${l.c}80` }}/>
-                <div style={{ fontSize: 10, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace', letterSpacing: 0.6 }}>{l.label}</div>
+                <div style={{ fontSize: 10, color:'var(--txt-3)', fontFamily:'Inter, sans-serif', letterSpacing: 0.6 }}>{l.label}</div>
               </div>
             ))}
           </div>
@@ -277,7 +275,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
                   <div style={{ width: 6, height: 22, borderRadius: 3, background: col, boxShadow: `0 0 6px ${col}80`, flexShrink: 0 }}/>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 11, color:'var(--txt)', fontWeight: 600 }}>{muscleLabels[k]}</div>
-                    <div style={{ fontSize: 9, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace', marginTop: 1 }}>
+                    <div style={{ fontSize: 9, color:'var(--txt-3)', fontFamily:'Inter, sans-serif', marginTop: 1 }}>
                       <span style={{ color: col, fontWeight: 700 }}>{actual}</span> / {goal} Sätze
                     </div>
                   </div>
@@ -295,15 +293,15 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
             <div style={{ display:'flex', gap: 12, alignItems:'flex-start' }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 12, flexShrink: 0,
-                background:'rgba(61,128,104,0.08)', border:'1px solid rgba(61,128,104,0.20)',
+                background:'rgba(var(--accent-rgb),0.08)', border:'1px solid rgba(var(--accent-rgb),0.20)',
                 display:'flex', alignItems:'center', justifyContent:'center',
-                boxShadow: '0 0 20px rgba(61,128,104,0.12)'
+                boxShadow: '0 0 20px rgba(var(--accent-rgb),0.12)'
               }}>
                 <Icon.spark size={20} color="var(--green)"/>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color:'var(--green)', fontWeight:700, letterSpacing:1.4, textTransform:'uppercase', fontFamily:'JetBrains Mono, monospace' }}>Coach Insight</div>
-                <div style={{ fontSize: 14, marginTop: 4, lineHeight: 1.45, color:'#FFFFFF' }}>
+                <div style={{ fontSize: 11, color:'var(--green)', fontWeight:700, letterSpacing:1.4, textTransform:'uppercase', fontFamily:'Inter, sans-serif' }}>Coach Insight</div>
+                <div style={{ fontSize: 14, marginTop: 4, lineHeight: 1.45, color:'var(--txt)' }}>
                   Du hast diese Woche <b>{totalSetsLogged}</b> Sätze geloggt. Bleib dran!
                 </div>
               </div>
@@ -317,19 +315,19 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
         <Section>
           <Card padding={14} style={{
             background:'rgba(239,68,68,0.06)',
-            borderColor:'rgba(61,128,104,0.25)',
-            boxShadow:'0 0 22px rgba(61,128,104,0.11)'
+            borderColor:'rgba(var(--accent-rgb),0.25)',
+            boxShadow:'0 0 22px rgba(var(--accent-rgb),0.11)'
           }}>
             <div style={{ display:'flex', gap:12, alignItems:'center' }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                background:'rgba(61,128,104,0.12)', border:'1px solid rgba(61,128,104,0.25)',
+                background:'rgba(var(--accent-rgb),0.12)', border:'1px solid rgba(var(--accent-rgb),0.25)',
                 display:'flex', alignItems:'center', justifyContent:'center'
               }}>
                 <Icon.warning size={18} color="#EF4444"/>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, color: '#FFFFFF', fontWeight: 600 }}>Halte deinen {streak}-Tage-Streak.</div>
+                <div style={{ fontSize: 13, color: 'var(--txt)', fontWeight: 600 }}>Halte deinen {streak}-Tage-Streak.</div>
                 <div style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 2 }}>Heute trainieren um die Serie zu sichern.</div>
               </div>
               <Icon.chevronRight size={16} color="var(--txt-2)"/>
@@ -344,7 +342,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
           <Card padding={16}>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1px 1fr', gap: 16, alignItems:'center' }}>
               <div>
-                <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontWeight:600, fontFamily:'JetBrains Mono, monospace' }}>Gewicht</div>
+                <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontWeight:600, fontFamily:'Inter, sans-serif' }}>Gewicht</div>
                 <div style={{ display:'flex', alignItems:'baseline', gap:6, marginTop: 6 }}>
                   <span className="ticker" style={{ fontSize: 28, fontWeight: 700 }}>{weight > 0 ? weight : '—'}</span>
                   {weight > 0 && <span style={{ fontSize: 14, color:'var(--txt-2)' }}>kg</span>}
@@ -358,7 +356,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
               </div>
               <div style={{ height: 36, background:'var(--line-2)' }}/>
               <div>
-                <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontWeight:600, fontFamily:'JetBrains Mono, monospace' }}>BMI</div>
+                <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontWeight:600, fontFamily:'Inter, sans-serif' }}>BMI</div>
                 <div style={{ display:'flex', alignItems:'baseline', gap:6, marginTop: 6 }}>
                   <span className="ticker" style={{ fontSize: 28, fontWeight: 700 }}>{bmi > 0 ? bmi : '—'}</span>
                   {bmi > 0 && (

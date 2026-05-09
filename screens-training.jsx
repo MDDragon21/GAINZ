@@ -213,19 +213,19 @@ function ScreenTraining({ data, setData, user, reload }) {
             const isToday = d.state === 'today';
             return (
               <div key={i} onClick={() => setExpanded(isOpen ? -1 : i)} style={{
-                background: isOpen ? 'rgba(61,128,104,0.09)' : isToday ? 'rgba(61,128,104,0.05)' : 'var(--card)',
-                border: `1px solid ${isOpen || isToday ? 'rgba(61,128,104,0.25)' : 'var(--line)'}`,
+                background: isOpen ? 'rgba(var(--accent-rgb),0.09)' : isToday ? 'rgba(var(--accent-rgb),0.05)' : 'var(--card)',
+                border: `1px solid ${isOpen || isToday ? 'rgba(var(--accent-rgb),0.25)' : 'var(--line)'}`,
                 borderRadius: 12, padding: '10px 4px',
                 display:'flex', flexDirection:'column', alignItems:'center', gap: 6,
                 cursor:'pointer',
-                boxShadow: isOpen ? '0 0 18px rgba(61,128,104,0.20)' : 'none',
+                boxShadow: isOpen ? '0 0 18px rgba(var(--accent-rgb),0.20)' : 'none',
                 transition:'all .2s'
               }}>
-                <div style={{ fontSize: 10, color:'var(--txt-2)', fontWeight: 600, letterSpacing: 1, fontFamily: 'JetBrains Mono, monospace' }}>{d.day}</div>
+                <div style={{ fontSize: 10, color:'var(--txt-2)', fontWeight: 600, letterSpacing: 1, fontFamily: 'Inter, sans-serif' }}>{d.day}</div>
                 <div className={isToday ? 'ticker grad-text' : 'ticker'} style={{ fontSize: 17, fontWeight: 700, color: isToday ? undefined : 'var(--txt)' }}>{d.date}</div>
                 <div style={{
                   width: 7, height: 7, borderRadius: 7, background: dot,
-                  boxShadow: d.state === 'done' || d.state === 'today' ? '0 0 8px rgba(61,128,104,0.35)' : 'none',
+                  boxShadow: d.state === 'done' || d.state === 'today' ? '0 0 8px rgba(var(--accent-rgb),0.35)' : 'none',
                   animation: d.state === 'today' ? 'softPulse 1.6s ease-in-out infinite' : 'none',
                 }}/>
               </div>
@@ -240,7 +240,7 @@ function ScreenTraining({ data, setData, user, reload }) {
           <Section style={{ marginTop: 4 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div>
-                <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'JetBrains Mono, monospace', fontWeight:600 }}>
+                <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'Inter, sans-serif', fontWeight:600 }}>
                   {fullDayLabels[expanded]} · {week[expanded].date}. {week[expanded].monthShort}
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, letterSpacing:-0.3 }}>
@@ -269,9 +269,9 @@ function ScreenTraining({ data, setData, user, reload }) {
                           <button key={t} onClick={() => setTrackingMode({...trackingMode, [m]: t })} style={{
                             border:'none', cursor:'pointer',
                             padding:'2px 8px', borderRadius: 6,
-                            fontSize: 10, fontWeight: 600, fontFamily:'JetBrains Mono, monospace', letterSpacing: 0.5,
-                            background: mode === t ? 'rgba(61,128,104,0.11)' : 'transparent',
-                            color: mode === t ? '#3d8068' : 'var(--txt-3)',
+                            fontSize: 10, fontWeight: 600, fontFamily:'Inter, sans-serif', letterSpacing: 0.5,
+                            background: mode === t ? 'rgba(var(--accent-rgb),0.11)' : 'transparent',
+                            color: mode === t ? 'var(--accent)' : 'var(--txt-3)',
                             textTransform:'uppercase'
                           }}>{t === 'reps' ? 'Reps' : 'Zeit'}</button>
                         ))}
@@ -289,10 +289,10 @@ function ScreenTraining({ data, setData, user, reload }) {
               {['💪','😤','⚡','😴','🔥'].map(e => (
                 <button key={e} onClick={() => setActiveMood(activeMood === e ? null : e)} style={{
                   flex: 1, height: 48, borderRadius: 14,
-                  border: `1px solid ${activeMood === e ? 'rgba(61,128,104,0.28)' : 'var(--line)'}`,
-                  background: activeMood === e ? 'rgba(61,128,104,0.09)' : 'rgba(140,150,255,0.02)',
+                  border: `1px solid ${activeMood === e ? 'rgba(var(--accent-rgb),0.28)' : 'var(--line)'}`,
+                  background: activeMood === e ? 'rgba(var(--accent-rgb),0.09)' : 'rgba(140,150,255,0.02)',
                   fontSize: 22, cursor:'pointer',
-                  boxShadow: activeMood === e ? '0 0 16px rgba(61,128,104,0.20)' : 'none',
+                  boxShadow: activeMood === e ? '0 0 16px rgba(var(--accent-rgb),0.20)' : 'none',
                   transition:'all .15s'
                 }}>{e}</button>
               ))}
@@ -308,7 +308,7 @@ function ScreenTraining({ data, setData, user, reload }) {
                   resize:'none', color: 'var(--txt)', fontSize: 14,
                   fontFamily: 'inherit'
                 }}/>
-              <div style={{ padding: '0 14px 10px', textAlign:'right', fontSize: 11, color: note.length > 250 ? 'var(--gold)' : 'var(--txt-3)', fontFamily: 'JetBrains Mono, monospace' }}>{note.length}/300</div>
+              <div style={{ padding: '0 14px 10px', textAlign:'right', fontSize: 11, color: note.length > 250 ? 'var(--gold)' : 'var(--txt-3)', fontFamily: 'Inter, sans-serif' }}>{note.length}/300</div>
             </Card>
           </Section>
 
@@ -317,7 +317,7 @@ function ScreenTraining({ data, setData, user, reload }) {
               {[{ label:'Was gut lief', value: wins, set: setWins, ph: 'PRs, Form, Energie…' },
                 { label:'Was schwer war', value: hard, set: setHard, ph: 'Knie, Atem, Konzentration…' }].map(f => (
                 <Card key={f.label} padding={12}>
-                  <div style={{ fontSize: 11, color: 'var(--txt-2)', fontWeight: 600, fontFamily:'JetBrains Mono, monospace', textTransform:'uppercase', letterSpacing:1.2 }}>{f.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--txt-2)', fontWeight: 600, fontFamily:'Inter, sans-serif', textTransform:'uppercase', letterSpacing:1.2 }}>{f.label}</div>
                   <input value={f.value} onChange={(e) => f.set(e.target.value)} placeholder={f.ph}
                     style={{
                       width:'100%', marginTop: 6, padding: 0,
@@ -350,7 +350,7 @@ function ScreenTraining({ data, setData, user, reload }) {
                 background:'rgba(34,197,94,0.18)',
                 border:'1px solid rgba(34,197,94,0.45)',
                 color:'#22C55E', fontSize: 13, fontWeight: 700,
-                fontFamily:'JetBrains Mono, monospace', letterSpacing: 0.6,
+                fontFamily:'Inter, sans-serif', letterSpacing: 0.6,
                 boxShadow:'0 8px 24px rgba(34,197,94,0.25)',
                 whiteSpace:'nowrap',
               }}>Training gespeichert! 💪</div>

@@ -79,15 +79,16 @@ const Icon = {
 };
 
 // ─── PRIMITIVES ───────────────────────────────────────
-function Card({ children, style, glow, accent, onClick, padding = 16, radius = 16 }) {
+function Card({ children, style, glow, gold, accent, onClick, padding = 16, radius = 18 }) {
+  // `accent` kept for back-compat; `gold` opts into glass-gold variant.
+  const cls = `glass${gold ? ' glass-gold' : ''}`;
   return (
-    <div onClick={onClick} style={{
-      background: 'var(--card)',
-      border: `1px solid ${accent ? 'rgba(61,128,104,0.16)' : 'var(--line)'}`,
+    <div onClick={onClick} className={cls} style={{
       borderRadius: radius,
       padding,
-      position: 'relative',
-      boxShadow: glow ? '0 0 24px rgba(61,128,104,0.06), 0 1px 0 rgba(255,255,255,0.04) inset' : '0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.4)',
+      boxShadow: glow
+        ? '0 0 36px rgba(var(--accent-rgb),0.22), 0 1px 0 rgba(255,255,255,0.10) inset, 0 18px 40px rgba(0,0,0,0.50)'
+        : undefined,
       cursor: onClick ? 'pointer' : 'default',
       ...style,
     }}>{children}</div>
@@ -96,10 +97,10 @@ function Card({ children, style, glow, accent, onClick, padding = 16, radius = 1
 
 function ScreenHeader({ title, sub, right }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '8px 20px 18px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '12px 22px 18px' }}>
       <div>
-        <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1.1 }}>{title}</div>
-        {sub && <div style={{ fontSize: 13, color: 'var(--txt-2)', marginTop: 4 }}>{sub}</div>}
+        <div className="serif" style={{ fontSize: 34, fontWeight: 600, letterSpacing: -0.6, lineHeight: 1.0, fontStyle: 'italic' }}>{title}</div>
+        {sub && <div style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 6, letterSpacing: 0.2 }}>{sub}</div>}
       </div>
       {right}
     </div>
@@ -115,7 +116,7 @@ function Pill({ children, color = 'var(--green)', bg, dim, style, onClick, activ
       fontSize: 12, fontWeight: 600, letterSpacing: 0.2,
       background: bg ?? (active ? 'var(--green-soft)' : 'rgba(255,255,255,0.04)'),
       color: fg,
-      border: `1px solid ${active ? 'rgba(61,128,104,0.22)' : 'var(--line)'}`,
+      border: `1px solid ${active ? 'rgba(var(--accent-rgb),0.22)' : 'var(--line)'}`,
       cursor: onClick ? 'pointer' : 'default',
       ...style,
     }}>{children}</span>
@@ -145,16 +146,16 @@ function btn(accent) {
 function ProgressBar({ value, max, gradient = true, color, height = 8, showLabel = true }) {
   const pct = Math.max(0, Math.min(1, value / max));
   const fill = gradient && !color
-    ? 'linear-gradient(135deg, #173a2e 0%, #3d8068 100%)'
+    ? 'var(--grad)'
     : `linear-gradient(90deg, ${color}, ${color}cc)`;
   return (
     <div style={{ position: 'relative' }}>
-      <div style={{ height, borderRadius: height, background: 'rgba(140,150,255,0.06)', overflow: 'hidden' }}>
+      <div style={{ height, borderRadius: height, background: 'rgba(255,255,255,0.05)', overflow: 'hidden', border: '1px solid var(--line)' }}>
         <div style={{
           width: `${pct * 100}%`, height: '100%',
           background: fill,
           borderRadius: height,
-          boxShadow: '0 0 12px rgba(61,128,104,0.35), 0 0 8px rgba(78,169,137,0.4)',
+          boxShadow: '0 0 12px rgba(var(--accent-rgb),0.35), 0 0 8px rgba(var(--accent-rgb),0.40)',
           transition: 'width .35s ease',
         }} />
       </div>
@@ -167,7 +168,7 @@ function Section({ title, right, children, style }) {
     <div style={{ padding: '0 20px', marginBottom: 18, ...style }}>
       {(title || right) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt-2)', textTransform: 'uppercase', letterSpacing: 1.4 }}>{title}</div>
+          <div className="label-cap">{title}</div>
           {right}
         </div>
       )}
@@ -192,7 +193,7 @@ function CTA({ children, onClick, gradient = true, color, dark = '#FFFFFF', size
       fontSize: size === 'lg' ? 17 : 15, fontWeight: 700, letterSpacing: 0.2,
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
       cursor: 'pointer',
-      boxShadow: '0 0 32px rgba(61,128,104,0.28), 0 0 24px rgba(61,128,104,0.16), 0 8px 20px rgba(0,0,0,0.5)',
+      boxShadow: '0 0 32px rgba(var(--accent-rgb),0.30), 0 0 24px rgba(var(--accent-rgb),0.18), 0 12px 30px rgba(0,0,0,0.55)',
       ...style,
     }}>
       {icon}{children}
@@ -226,55 +227,154 @@ function LineChart({ data, color = 'var(--green)', width = 320, height = 100, fi
   );
 }
 
-// Small body silhouette w/ heatmap.
-// `groups` can map muscle key -> hex color (e.g. '#3d8068') OR a status keyword
-// ('green'|'yellow'|'red'|'grey') which falls back to the goal-progress palette.
+// Small body silhouette w/ heatmap (deep jewel tones, volumetric "wet anatomy" look).
+// `groups` maps muscle key -> hex color OR status keyword ('green'|'yellow'|'red'|'grey').
 function BodyHeatmap({ groups, view = 'front', size = 1 }) {
-  const STATUS = { green: '#22C55E', yellow: '#FFD700', red: '#EF4444', grey: 'rgba(255,255,255,0.12)' };
+  const STATUS = {
+    green:  '#006B4D', // 100%+ → deep forest emerald
+    yellow: '#8C7233', // 50–99% → deep antique gold
+    red:    '#5C0F0F', // <50%  → deep burgundy
+    grey:   '#1F4A6E', // dormant → cool anatomical blue
+  };
+  const GLOW = {
+    green:  'rgba(0,255,170,0.85)',
+    yellow: 'rgba(230,190,90,0.75)',
+    red:    'rgba(220,40,40,0.70)',
+    grey:   'rgba(31,74,110,0)',
+  };
+  const g = (k) => {
+    const v = groups[k];
+    if (!v) return GLOW.grey;
+    if (typeof v === 'string' && v.startsWith('#')) return 'rgba(255,255,255,0.15)';
+    return GLOW[v] || GLOW.grey;
+  };
   const c = (k) => {
     const v = groups[k];
     if (!v) return STATUS.grey;
     if (typeof v === 'string' && v.startsWith('#')) return v;
     return STATUS[v] || STATUS.grey;
   };
-  const W = 110 * size, H = 200 * size;
+  const W = 130 * size, H = 230 * size;
+  const uid = view + '-' + (Math.random()*1e6|0);
   return (
-    <svg width={W} height={H} viewBox="0 0 110 200">
-      {/* head */}
-      <circle cx="55" cy="18" r="11" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)"/>
-      {/* torso outline */}
-      <path d="M30 38 Q35 35 45 34 L65 34 Q75 35 80 38 L82 70 Q83 90 80 110 L78 130 L76 150 L70 170 L62 195 L58 195 L56 175 L54 175 L52 195 L48 195 L40 170 L34 150 L32 130 L30 110 Q27 90 28 70 Z"
-        fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.10)" />
-      {/* arms */}
-      <path d="M28 42 L20 80 L18 110 L22 130 L26 130 L26 110 L30 80 Z" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.10)"/>
-      <path d="M82 42 L90 80 L92 110 L88 130 L84 130 L84 110 L80 80 Z" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.10)"/>
+    <svg width={W} height={H} viewBox="0 0 130 230" style={{ filter: 'drop-shadow(0 6px 20px rgba(0,0,0,0.55))' }}>
+      <defs>
+        {['brust','ruecken','schultern','bizeps','trizeps','bauch','beine'].map((mg) => (
+          <React.Fragment key={mg}>
+            <radialGradient id={`m-${uid}-${mg}`} cx="50%" cy="35%" r="65%">
+              <stop offset="0%"  stopColor={c(mg)} stopOpacity="1"/>
+              <stop offset="55%" stopColor={c(mg)} stopOpacity="0.92"/>
+              <stop offset="100%" stopColor="#000" stopOpacity="0.55"/>
+            </radialGradient>
+            <filter id={`gl-${uid}-${mg}`} x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="4.2" result="b"/>
+              <feFlood floodColor={g(mg).replace(/rgba\(([^)]+)\)/, 'rgb($1)').replace(/,[^,]+\)/, ')')} floodOpacity="1"/>
+              <feComposite in2="b" operator="in" result="glow"/>
+              <feMerge><feMergeNode in="glow"/><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </React.Fragment>
+        ))}
+        <linearGradient id={`skin-${uid}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor="#1a3a5c"/>
+          <stop offset="100%" stopColor="#0a1a2c"/>
+        </linearGradient>
+        <linearGradient id={`rim-${uid}`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"  stopColor="rgba(120,180,230,0.45)"/>
+          <stop offset="50%" stopColor="rgba(120,180,230,0)"/>
+          <stop offset="100%" stopColor="rgba(120,180,230,0.35)"/>
+        </linearGradient>
+        <filter id={`glow-${uid}`} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="0.6"/>
+        </filter>
+      </defs>
+
+      {/* HEAD */}
+      <ellipse cx="65" cy="20" rx="13" ry="15" fill={`url(#skin-${uid})`} stroke="rgba(120,180,230,0.30)" strokeWidth="0.6"/>
+      <ellipse cx="65" cy="20" rx="13" ry="15" fill={`url(#rim-${uid})`} opacity="0.6"/>
+      <path d="M58 33 L58 40 Q65 43 72 40 L72 33 Z" fill={`url(#skin-${uid})`} stroke="rgba(120,180,230,0.25)" strokeWidth="0.5"/>
+
+      {/* TORSO */}
+      <path d="M38 44 Q44 41 54 40 L76 40 Q86 41 92 44 L96 60 Q98 80 96 100 L94 120 L92 138 L86 158 L82 178 L78 200 L74 218 L70 222 L66 222 L65 200 Q63 200 63 200 L62 222 L58 222 L54 218 L50 200 L46 178 L42 158 L38 138 L36 120 L34 100 Q32 80 34 60 Z"
+        fill={`url(#skin-${uid})`} stroke="rgba(120,180,230,0.30)" strokeWidth="0.7"/>
+      <path d="M38 44 Q44 41 54 40 L76 40 Q86 41 92 44 L96 60 Q98 80 96 100" fill="none" stroke="rgba(140,200,240,0.28)" strokeWidth="0.5"/>
+
+      {/* ARMS */}
+      <path d="M34 48 Q26 60 22 80 L18 110 Q17 128 22 142 L26 144 Q30 130 30 112 L34 86 Z"
+        fill={`url(#skin-${uid})`} stroke="rgba(120,180,230,0.30)" strokeWidth="0.6"/>
+      <path d="M96 48 Q104 60 108 80 L112 110 Q113 128 108 142 L104 144 Q100 130 100 112 L96 86 Z"
+        fill={`url(#skin-${uid})`} stroke="rgba(120,180,230,0.30)" strokeWidth="0.6"/>
+      <ellipse cx="24" cy="150" rx="4.5" ry="6" fill={`url(#skin-${uid})`} stroke="rgba(120,180,230,0.25)" strokeWidth="0.5"/>
+      <ellipse cx="106" cy="150" rx="4.5" ry="6" fill={`url(#skin-${uid})`} stroke="rgba(120,180,230,0.25)" strokeWidth="0.5"/>
+
       {view === 'front' ? <>
-        {/* schultern */}
-        <ellipse cx="36" cy="44" rx="9" ry="5" fill={c('schultern')} opacity="0.85"/>
-        <ellipse cx="74" cy="44" rx="9" ry="5" fill={c('schultern')} opacity="0.85"/>
-        {/* brust */}
-        <path d="M37 50 Q55 56 73 50 L70 70 Q55 76 40 70 Z" fill={c('brust')} opacity="0.85"/>
-        {/* bizeps */}
-        <ellipse cx="24" cy="65" rx="5" ry="11" fill={c('bizeps')} opacity="0.85"/>
-        <ellipse cx="86" cy="65" rx="5" ry="11" fill={c('bizeps')} opacity="0.85"/>
-        {/* bauch */}
-        <rect x="44" y="76" width="22" height="32" rx="4" fill={c('bauch')} opacity="0.85"/>
-        {/* beine */}
-        <path d="M40 112 L36 170 L42 170 L48 112 Z" fill={c('beine')} opacity="0.85"/>
-        <path d="M70 112 L74 170 L68 170 L62 112 Z" fill={c('beine')} opacity="0.85"/>
+        {/* DELTOIDS */}
+        <g>
+          <path d="M36 46 Q30 52 30 64 Q34 66 42 60 Q44 52 42 46 Z" fill={`url(#m-${uid}-schultern)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <path d="M94 46 Q100 52 100 64 Q96 66 88 60 Q86 52 88 46 Z" fill={`url(#m-${uid}-schultern)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+        </g>
+        {/* PECS */}
+        <g>
+          <path d="M44 48 Q54 50 63 52 L63 78 Q60 80 52 78 Q44 76 41 70 Q40 58 44 48 Z" fill={`url(#m-${uid}-brust)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <path d="M86 48 Q76 50 67 52 L67 78 Q70 80 78 78 Q86 76 89 70 Q90 58 86 48 Z" fill={`url(#m-${uid}-brust)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+        </g>
+        {/* BICEPS */}
+        <g>
+          <ellipse cx="27" cy="74" rx="7.5" ry="18" fill={`url(#m-${uid}-bizeps)`} stroke="rgba(0,0,0,0.30)" strokeWidth="0.4"/>
+          <ellipse cx="103" cy="74" rx="7.5" ry="18" fill={`url(#m-${uid}-bizeps)`} stroke="rgba(0,0,0,0.30)" strokeWidth="0.4"/>
+        </g>
+        <ellipse cx="22" cy="118" rx="5" ry="14" fill="rgba(120,60,60,0.35)" stroke="rgba(0,0,0,0.25)" strokeWidth="0.3"/>
+        <ellipse cx="108" cy="118" rx="5" ry="14" fill="rgba(120,60,60,0.35)" stroke="rgba(0,0,0,0.25)" strokeWidth="0.3"/>
+        {/* ABS */}
+        <g>
+          <path d="M52 82 L78 82 L78 96 L52 96 Z" fill={`url(#m-${uid}-bauch)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <path d="M52 98 L78 98 L78 112 L52 112 Z" fill={`url(#m-${uid}-bauch)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <path d="M52 114 L78 114 L78 128 L52 128 Z" fill={`url(#m-${uid}-bauch)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <line x1="65" y1="82" x2="65" y2="128" stroke="rgba(0,0,0,0.40)" strokeWidth="0.5"/>
+          <path d="M44 90 L48 124 L52 124 L52 88 Z" fill={`url(#m-${uid}-bauch)`} opacity="0.55"/>
+          <path d="M86 90 L82 124 L78 124 L78 88 Z" fill={`url(#m-${uid}-bauch)`} opacity="0.55"/>
+        </g>
+        {/* QUADS */}
+        <g>
+          <path d="M46 138 Q44 168 50 200 L56 218 L62 218 L63 198 L62 162 L56 138 Z" fill={`url(#m-${uid}-beine)`} stroke="rgba(0,0,0,0.30)" strokeWidth="0.4"/>
+          <path d="M84 138 Q86 168 80 200 L74 218 L68 218 L67 198 L68 162 L74 138 Z" fill={`url(#m-${uid}-beine)`} stroke="rgba(0,0,0,0.30)" strokeWidth="0.4"/>
+        </g>
+        <ellipse cx="56" cy="195" rx="5" ry="3" fill="rgba(0,0,0,0.30)"/>
+        <ellipse cx="74" cy="195" rx="5" ry="3" fill="rgba(0,0,0,0.30)"/>
       </> : <>
-        {/* rücken */}
-        <path d="M37 44 Q55 40 73 44 L78 90 Q55 95 32 90 Z" fill={c('ruecken')} opacity="0.85"/>
-        {/* trizeps */}
-        <ellipse cx="22" cy="65" rx="5" ry="11" fill={c('trizeps')} opacity="0.85"/>
-        <ellipse cx="88" cy="65" rx="5" ry="11" fill={c('trizeps')} opacity="0.85"/>
-        {/* lower back / glutes */}
-        <ellipse cx="46" cy="106" rx="9" ry="8" fill={c('beine')} opacity="0.7"/>
-        <ellipse cx="64" cy="106" rx="9" ry="8" fill={c('beine')} opacity="0.7"/>
-        {/* legs back */}
-        <path d="M40 116 L36 170 L42 170 L48 116 Z" fill={c('beine')} opacity="0.85"/>
-        <path d="M70 116 L74 170 L68 170 L62 116 Z" fill={c('beine')} opacity="0.85"/>
+        {/* BACK */}
+        <g>
+          <path d="M48 44 Q55 42 65 42 Q75 42 82 44 L82 60 Q72 64 65 64 Q58 64 48 60 Z" fill={`url(#m-${uid}-ruecken)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <path d="M40 60 Q44 78 50 96 L60 100 L60 64 Q52 62 46 60 Z" fill={`url(#m-${uid}-ruecken)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <path d="M90 60 Q86 78 80 96 L70 100 L70 64 Q78 62 84 60 Z" fill={`url(#m-${uid}-ruecken)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <path d="M60 64 L60 110 L65 114 L70 110 L70 64 Z" fill={`url(#m-${uid}-ruecken)`} opacity="0.85" stroke="rgba(0,0,0,0.35)" strokeWidth="0.3"/>
+          <line x1="65" y1="44" x2="65" y2="130" stroke="rgba(0,0,0,0.40)" strokeWidth="0.5"/>
+        </g>
+        {/* DELTS rear */}
+        <g>
+          <path d="M36 46 Q30 52 30 64 Q34 66 42 60 Q44 52 42 46 Z" fill={`url(#m-${uid}-schultern)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <path d="M94 46 Q100 52 100 64 Q96 66 88 60 Q86 52 88 46 Z" fill={`url(#m-${uid}-schultern)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+        </g>
+        {/* TRICEPS */}
+        <g>
+          <ellipse cx="25" cy="74" rx="7.5" ry="18" fill={`url(#m-${uid}-trizeps)`} stroke="rgba(0,0,0,0.30)" strokeWidth="0.4"/>
+          <ellipse cx="105" cy="74" rx="7.5" ry="18" fill={`url(#m-${uid}-trizeps)`} stroke="rgba(0,0,0,0.30)" strokeWidth="0.4"/>
+        </g>
+        {/* GLUTES */}
+        <g>
+          <path d="M48 116 Q44 130 52 142 L62 144 L64 116 Z" fill={`url(#m-${uid}-beine)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+          <path d="M82 116 Q86 130 78 142 L68 144 L66 116 Z" fill={`url(#m-${uid}-beine)`} stroke="rgba(0,0,0,0.35)" strokeWidth="0.4"/>
+        </g>
+        {/* HAMS + CALVES */}
+        <g>
+          <path d="M50 146 Q48 174 54 200 L60 218 L64 218 L64 200 L62 170 L56 146 Z" fill={`url(#m-${uid}-beine)`} stroke="rgba(0,0,0,0.30)" strokeWidth="0.4"/>
+          <path d="M80 146 Q82 174 76 200 L70 218 L66 218 L66 200 L68 170 L74 146 Z" fill={`url(#m-${uid}-beine)`} stroke="rgba(0,0,0,0.30)" strokeWidth="0.4"/>
+          <ellipse cx="56" cy="190" rx="4.5" ry="10" fill={`url(#m-${uid}-beine)`} opacity="0.85"/>
+          <ellipse cx="74" cy="190" rx="4.5" ry="10" fill={`url(#m-${uid}-beine)`} opacity="0.85"/>
+        </g>
       </>}
+
+      <path d="M38 44 Q44 41 54 40 L76 40 Q86 41 92 44 L96 60 Q98 80 96 100 L94 120 L92 138 L86 158 L82 178 L78 200 L74 218 L70 222 L66 222 L65 200 Q63 200 63 200 L62 222 L58 222 L54 218 L50 200 L46 178 L42 158 L38 138 L36 120 L34 100 Q32 80 34 60 Z"
+        fill="none" stroke="rgba(140,200,240,0.20)" strokeWidth="0.6" filter={`url(#glow-${uid})`}/>
     </svg>
   );
 }
@@ -285,7 +385,7 @@ function MuscleGlyph({ name, color = 'var(--green)' }) {
   return (
     <div style={{
       width: 36, height: 36, borderRadius: 10,
-      background: 'rgba(61,128,104,0.06)', border: '1px solid rgba(78,169,137,0.28)',
+      background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.28)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: 12, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace',
     }}><span className="grad-text">{map[name] || name.slice(0,2).toUpperCase()}</span></div>

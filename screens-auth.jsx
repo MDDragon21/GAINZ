@@ -61,12 +61,13 @@ function AuthScreen() {
         boxShadow: '0 30px 80px rgba(0,0,0,0.55)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <div className="grad-text" style={{
-            fontSize: 38, fontWeight: 700, letterSpacing: -1.5, lineHeight: 1,
+          <div className="serif" style={{
+            fontSize: 44, fontWeight: 600, letterSpacing: -1.0, lineHeight: 1,
+            color:'var(--accent)', fontStyle:'italic',
           }}>GAINZ</div>
           <div style={{
             fontSize: 11, color: 'var(--txt-2, #8fa89d)', marginTop: 6,
-            fontFamily: 'JetBrains Mono, monospace', letterSpacing: 2,
+            fontFamily: 'Inter, sans-serif', letterSpacing: 2,
             textTransform: 'uppercase',
           }}>Fitness · Tracker</div>
         </div>
@@ -112,16 +113,16 @@ function AuthScreen() {
           {info && (
             <div style={{
               padding: '10px 12px', borderRadius: 10,
-              background: 'rgba(61,128,104,0.10)',
-              border: '1px solid rgba(61,128,104,0.30)',
-              color: 'var(--green, #3d8068)', fontSize: 12, marginBottom: 10,
+              background: 'rgba(var(--accent-rgb),0.10)',
+              border: '1px solid rgba(var(--accent-rgb),0.30)',
+              color: 'var(--accent)', fontSize: 12, marginBottom: 10,
             }}>{info}</div>
           )}
 
           <button type="submit" disabled={busy} style={{
             width: '100%', padding: '14px 16px',
             border: 'none', borderRadius: 14,
-            background: busy ? 'rgba(61,128,104,0.4)' : 'var(--grad, linear-gradient(135deg, #173a2e 0%, #3d8068 100%))',
+            background: busy ? 'rgba(var(--accent-rgb),0.4)' : 'linear-gradient(135deg, rgba(var(--accent-rgb),0.55) 0%, rgba(var(--accent-rgb),1) 100%)',
             color: '#fff', fontSize: 15, fontWeight: 700,
             cursor: busy ? 'wait' : 'pointer',
             fontFamily: 'inherit',
@@ -132,7 +133,7 @@ function AuthScreen() {
         <div style={{
           marginTop: 18, textAlign: 'center',
           fontSize: 11, color: 'var(--txt-3, #4a6b5e)',
-          fontFamily: 'JetBrains Mono, monospace', letterSpacing: 1,
+          fontFamily: 'Inter, sans-serif', letterSpacing: 1,
         }}>
           Daten verschlüsselt · Supabase
         </div>

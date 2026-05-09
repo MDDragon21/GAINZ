@@ -91,7 +91,7 @@ function ScreenBody({ data, setData, embedded = false }) {
           background:'rgba(34,197,94,0.18)',
           border:'1px solid rgba(34,197,94,0.45)',
           color:'#22C55E', fontSize: 13, fontWeight: 700,
-          fontFamily:'JetBrains Mono, monospace', letterSpacing: 0.6,
+          fontFamily:'Inter, sans-serif', letterSpacing: 0.6,
           boxShadow:'0 8px 24px rgba(34,197,94,0.25)',
           whiteSpace:'nowrap',
         }}>Gespeichert ✓</div>
@@ -103,9 +103,9 @@ function ScreenBody({ data, setData, embedded = false }) {
         <Card padding={18}>
           <div style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap: 16 }}>
             <div>
-              <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'JetBrains Mono, monospace', fontWeight: 600 }}>Gewicht</div>
+              <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'Inter, sans-serif', fontWeight: 600 }}>Gewicht</div>
               <div style={{ display:'flex', alignItems:'baseline', gap: 6, marginTop: 4 }}>
-                <span className="ticker" style={{ fontSize: 44, fontWeight: 700, letterSpacing:-1.5, lineHeight: 1 }}>{data.weight}</span>
+                <span className="ticker serif" style={{ fontSize: 48, fontWeight: 600, letterSpacing:-1.5, lineHeight: 1, color:'var(--accent)', fontStyle:'italic' }}>{data.weight}</span>
                 <span style={{ fontSize: 16, color:'var(--txt-2)' }}>kg</span>
               </div>
               {hasTrend && data.weightDelta != null && (
@@ -122,15 +122,15 @@ function ScreenBody({ data, setData, embedded = false }) {
               )}
             </div>
             <div style={{ borderLeft:'1px solid var(--line)', paddingLeft: 16 }}>
-              <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'JetBrains Mono, monospace', fontWeight: 600 }}>BMI</div>
+              <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'Inter, sans-serif', fontWeight: 600 }}>BMI</div>
               <div style={{ display:'flex', alignItems:'baseline', gap: 6, marginTop: 4 }}>
-                <span className="ticker" style={{ fontSize: 44, fontWeight: 700, letterSpacing:-1.5, lineHeight: 1 }}>{data.bmi}</span>
+                <span className="ticker serif" style={{ fontSize: 48, fontWeight: 600, letterSpacing:-1.5, lineHeight: 1, color:'var(--accent)', fontStyle:'italic' }}>{data.bmi}</span>
               </div>
               <div style={{ marginTop: 8 }}>
                 {currentBmiCat ? (
                   <Pill color={currentBmiCat.color} active style={{ padding:'3px 8px', fontSize: 10 }}>{currentBmiCat.label}</Pill>
                 ) : (
-                  <span style={{ fontSize: 10, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace', letterSpacing: 1 }}>—</span>
+                  <span style={{ fontSize: 10, color:'var(--txt-3)', fontFamily:'Inter, sans-serif', letterSpacing: 1 }}>—</span>
                 )}
               </div>
             </div>
@@ -145,7 +145,7 @@ function ScreenBody({ data, setData, embedded = false }) {
             style={{
               border:'none', background:'transparent',
               color:'var(--green)', fontSize: 11, fontWeight: 600,
-              fontFamily:'JetBrains Mono, monospace', letterSpacing: 1,
+              fontFamily:'Inter, sans-serif', letterSpacing: 1,
               textTransform:'uppercase', cursor:'pointer',
             }}>Bearbeiten</button>
         ) : null
@@ -154,7 +154,7 @@ function ScreenBody({ data, setData, embedded = false }) {
           <Card padding={16}>
             <label style={{
               display:'block', fontSize: 11, color:'var(--txt-2)',
-              fontFamily:'JetBrains Mono, monospace',
+              fontFamily:'Inter, sans-serif',
               textTransform:'uppercase', letterSpacing: 1.4, fontWeight: 600,
               marginBottom: 8,
             }}>Zielgewicht (kg)</label>
@@ -202,7 +202,7 @@ function ScreenBody({ data, setData, embedded = false }) {
                   flex: 2, padding:'12px',
                   background: Number.isFinite(draftTarget)
                     ? 'var(--grad)'
-                    : 'rgba(61,128,104,0.3)',
+                    : 'rgba(var(--accent-rgb),0.3)',
                   border:'none', borderRadius: 12,
                   color:'#fff', fontSize: 13, fontWeight: 700,
                   cursor: Number.isFinite(draftTarget) ? 'pointer' : 'not-allowed',
@@ -221,7 +221,7 @@ function ScreenBody({ data, setData, embedded = false }) {
                   marginTop: 10, width:'100%', padding:'10px',
                   background:'transparent', border:'none',
                   color:'#EF4444', fontSize: 11, fontWeight: 600,
-                  fontFamily:'JetBrains Mono, monospace', letterSpacing: 1,
+                  fontFamily:'Inter, sans-serif', letterSpacing: 1,
                   textTransform:'uppercase', cursor:'pointer',
                 }}>Zielgewicht entfernen</button>
             )}
@@ -229,8 +229,8 @@ function ScreenBody({ data, setData, embedded = false }) {
         ) : !targetWeight ? (
           <button onClick={() => setShowTargetEdit(true)} style={{
             width:'100%', padding:'14px 16px', borderRadius: 16,
-            background:'rgba(61,128,104,0.05)',
-            border:'1px dashed rgba(61,128,104,0.25)',
+            background:'rgba(var(--accent-rgb),0.05)',
+            border:'1px dashed rgba(var(--accent-rgb),0.25)',
             color:'var(--green)', fontSize: 14, fontWeight: 600,
             display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
             cursor:'pointer', fontFamily:'inherit',
@@ -253,13 +253,13 @@ function ScreenBody({ data, setData, embedded = false }) {
               <>
                 <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'JetBrains Mono, monospace', fontWeight: 600 }}>Aktuell</div>
+                    <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'Inter, sans-serif', fontWeight: 600 }}>Aktuell</div>
                     <div className="ticker" style={{ fontSize: 22, fontWeight: 700 }}>
                       {currentWeight ? currentWeight.toFixed(1) : '—'} <span style={{ fontSize: 12, color:'var(--txt-2)' }}>kg</span>
                     </div>
                   </div>
                   <div style={{ textAlign:'right' }}>
-                    <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'JetBrains Mono, monospace', fontWeight: 600 }}>Ziel</div>
+                    <div style={{ fontSize: 11, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontFamily:'Inter, sans-serif', fontWeight: 600 }}>Ziel</div>
                     <div className="ticker grad-text" style={{ fontSize: 22, fontWeight: 700 }}>
                       {targetWeight.toFixed(1)} <span style={{ fontSize: 12, WebkitTextFillColor:'var(--txt-2)' }}>kg</span>
                     </div>
@@ -279,11 +279,11 @@ function ScreenBody({ data, setData, embedded = false }) {
                         position:'absolute', top: 0, left: 0, bottom: 0,
                         width: goalPct + '%',
                         background:'var(--grad)',
-                        boxShadow:'0 0 12px rgba(61,128,104,0.45)',
+                        boxShadow:'0 0 12px rgba(var(--accent-rgb),0.45)',
                         transition:'width .3s',
                       }}/>
                     </div>
-                    <div style={{ display:'flex', justifyContent:'space-between', marginTop: 6, fontSize: 10, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginTop: 6, fontSize: 10, color:'var(--txt-3)', fontFamily:'Inter, sans-serif' }}>
                       <span>Start · {startWeight ? startWeight.toFixed(1) : '—'} kg</span>
                       <span>{goalPct.toFixed(0)} %</span>
                       <span>Ziel · {targetWeight.toFixed(1)} kg</span>
@@ -294,8 +294,8 @@ function ScreenBody({ data, setData, embedded = false }) {
                 {goalRemaining != null && (
                   <div style={{
                     marginTop: 12, padding:'10px 12px',
-                    background:'rgba(61,128,104,0.08)',
-                    border:'1px solid rgba(61,128,104,0.20)',
+                    background:'rgba(var(--accent-rgb),0.08)',
+                    border:'1px solid rgba(var(--accent-rgb),0.20)',
                     borderRadius: 10,
                     fontSize: 13, fontWeight: 600,
                     color:'var(--green)',
@@ -318,8 +318,8 @@ function ScreenBody({ data, setData, embedded = false }) {
       <Section title="Gewicht · Verlauf">
         {hasTrend ? (
           <Card padding={16}>
-            <LineChart data={weightSeries} color="#3d8068" width={310} height={120}/>
-            <div style={{ marginTop: 8, fontSize: 10, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace', textAlign:'center' }}>
+            <LineChart data={weightSeries} color="var(--accent)" width={310} height={120}/>
+            <div style={{ marginTop: 8, fontSize: 10, color:'var(--txt-3)', fontFamily:'Inter, sans-serif', textAlign:'center' }}>
               {weightSeries.length} Messungen
             </div>
           </Card>
@@ -338,12 +338,12 @@ function ScreenBody({ data, setData, embedded = false }) {
           <Card padding={14}>
             <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
               <div style={{ flex: 1 }}>
-                <LineChart data={bmiSeries} color="#3d8068" width={210} height={56} dots={false}/>
+                <LineChart data={bmiSeries} color="var(--accent)" width={210} height={56} dots={false}/>
               </div>
               <div style={{ textAlign:'right' }}>
                 <div className="ticker" style={{ fontSize: 22, fontWeight: 700 }}>{data.bmi}</div>
                 {bmiDelta != null && bmiDelta !== 0 && (
-                  <div style={{ fontSize: 10, color: bmiDelta < 0 ? 'var(--green)' : '#EF4444', fontFamily:'JetBrains Mono, monospace', textTransform:'uppercase', letterSpacing: 1 }}>
+                  <div style={{ fontSize: 10, color: bmiDelta < 0 ? 'var(--green)' : '#EF4444', fontFamily:'Inter, sans-serif', textTransform:'uppercase', letterSpacing: 1 }}>
                     {bmiDelta > 0 ? '+' : ''}{bmiDelta} / {bmiSeries.length}M
                   </div>
                 )}
@@ -360,13 +360,13 @@ function ScreenBody({ data, setData, embedded = false }) {
       <Section>
         <button onClick={() => setShowSheet(true)} style={{
           width:'100%', padding:'14px 16px', borderRadius: 16,
-          background:'rgba(61,128,104,0.05)',
-          border:'1px dashed rgba(61,128,104,0.25)',
-          color:'#3d8068', fontSize: 14, fontWeight: 600,
+          background:'rgba(var(--accent-rgb),0.05)',
+          border:'1px dashed rgba(var(--accent-rgb),0.25)',
+          color:'var(--accent)', fontSize: 14, fontWeight: 600,
           display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
           cursor:'pointer'
         }}>
-          <Icon.plus size={18} color="#3d8068"/> Neue Messung
+          <Icon.plus size={18} color="var(--accent)"/> Neue Messung
         </button>
       </Section>
 
@@ -524,8 +524,8 @@ function ScreenBody({ data, setData, embedded = false }) {
 
 const pickerBtn = {
   width: 56, height: 56, borderRadius: 999,
-  background:'rgba(61,128,104,0.08)', border:'1px solid rgba(61,128,104,0.25)',
-  color:'#3d8068', fontSize: 26, fontWeight: 600, cursor:'pointer',
+  background:'rgba(var(--accent-rgb),0.08)', border:'1px solid rgba(var(--accent-rgb),0.25)',
+  color:'var(--accent)', fontSize: 26, fontWeight: 600, cursor:'pointer',
 };
 
 window.ScreenBody = ScreenBody;

@@ -50,33 +50,33 @@ function ScreenLeaderboard({ data, user }) {
       display:'flex', alignItems:'center', gap: 12,
       padding: '12px 14px',
       borderRadius: 14,
-      background: highlight ? 'rgba(61,128,104,0.06)' : 'transparent',
-      border: highlight ? '1px solid rgba(61,128,104,0.32)' : '1px solid transparent',
-      borderBottom: highlight ? '1px solid rgba(61,128,104,0.32)' : '1px solid var(--line)',
-      boxShadow: highlight ? '0 0 24px rgba(61,128,104,0.20), inset 0 1px 0 rgba(255,255,255,0.06)' : 'none',
+      background: highlight ? 'rgba(var(--accent-rgb),0.06)' : 'transparent',
+      border: highlight ? '1px solid rgba(var(--accent-rgb),0.32)' : '1px solid transparent',
+      borderBottom: highlight ? '1px solid rgba(var(--accent-rgb),0.32)' : '1px solid var(--line)',
+      boxShadow: highlight ? '0 0 24px rgba(var(--accent-rgb),0.20), inset 0 1px 0 rgba(255,255,255,0.06)' : 'none',
       position: 'relative'
     }}>
       <div className="ticker" style={{
         width: 28, textAlign:'center', fontSize: 16, fontWeight: 700,
         color: u.rank <= 3 ? 'var(--gold)' : 'var(--txt-2)',
-        fontFamily:'JetBrains Mono, monospace'
+        fontFamily:'Inter, sans-serif'
       }}>{u.rank}</div>
       <div style={{
         width: 36, height: 36, borderRadius: 999,
         background: highlight ? 'var(--green)' : 'rgba(255,255,255,0.05)',
-        border: `1px solid ${highlight ? 'rgba(61,128,104,0.32)' : 'var(--line)'}`,
+        border: `1px solid ${highlight ? 'rgba(var(--accent-rgb),0.32)' : 'var(--line)'}`,
         display:'flex', alignItems:'center', justifyContent:'center',
         fontSize: 13, fontWeight: 700, color: highlight ? '#fff' : 'var(--txt-2)'
       }}>{u.name.slice(0,2).toUpperCase()}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display:'flex', alignItems:'center', gap: 6 }}>
           <span className={highlight ? 'grad-text' : ''} style={{ fontSize: 14, fontWeight: 600, color: highlight ? undefined : 'var(--txt)' }}>{u.name}</span>
-          {highlight && <span className="grad-text" style={{ fontSize: 9, fontWeight: 700, padding:'2px 6px', borderRadius:6, background:'rgba(78,169,137,0.16)', border:'1px solid rgba(61,128,104,0.28)', fontFamily:'JetBrains Mono, monospace', letterSpacing: 1 }}>DU</span>}
+          {highlight && <span className="grad-text" style={{ fontSize: 9, fontWeight: 700, padding:'2px 6px', borderRadius:6, background:'rgba(var(--accent-rgb),0.16)', border:'1px solid rgba(var(--accent-rgb),0.28)', fontFamily:'Inter, sans-serif', letterSpacing: 1 }}>DU</span>}
         </div>
       </div>
       <div style={{ textAlign:'right' }}>
         <div className={highlight ? 'ticker grad-text' : 'ticker'} style={{ fontSize: 16, fontWeight: 700, color: highlight ? undefined : 'var(--txt)' }}>{u.score.toLocaleString('de-DE')}</div>
-        <div style={{ fontSize: 9, color:'var(--txt-3)', textTransform:'uppercase', fontFamily:'JetBrains Mono, monospace', letterSpacing: 1 }}>XP</div>
+        <div style={{ fontSize: 9, color:'var(--txt-3)', textTransform:'uppercase', fontFamily:'Inter, sans-serif', letterSpacing: 1 }}>XP</div>
       </div>
     </div>
   );
@@ -247,8 +247,8 @@ function ScreenProfile({ data, setData, user, reload }) {
               background:'var(--green)',
               display:'flex', alignItems:'center', justifyContent:'center',
               fontSize: 28, fontWeight: 700, color:'#fff',
-              boxShadow:'0 0 28px rgba(61,128,104,0.32), 0 0 18px rgba(61,128,104,0.20), inset 0 1px 0 rgba(255,255,255,0.30)',
-              fontFamily:'JetBrains Mono, monospace',
+              boxShadow:'0 0 28px rgba(var(--accent-rgb),0.32), 0 0 18px rgba(var(--accent-rgb),0.20), inset 0 1px 0 rgba(255,255,255,0.30)',
+              fontFamily:'Inter, sans-serif',
               flexShrink: 0,
             }}>{(data.name || 'A').slice(0,2).toUpperCase()}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -292,7 +292,7 @@ function ScreenProfile({ data, setData, user, reload }) {
                       style={{
                         flex: 2, padding:'8px 10px',
                         background: (!draftName.trim() || draftName.trim() === (data.name || '').trim())
-                          ? 'rgba(61,128,104,0.3)' : 'var(--grad)',
+                          ? 'rgba(var(--accent-rgb),0.3)' : 'var(--grad)',
                         border:'none', borderRadius: 8,
                         color:'#fff', fontSize: 12, fontWeight: 700,
                         cursor: (!draftName.trim() || draftName.trim() === (data.name || '').trim()) ? 'not-allowed' : 'pointer',
@@ -308,17 +308,17 @@ function ScreenProfile({ data, setData, user, reload }) {
                     </div>
                     <button onClick={beginEditName} style={{
                       padding:'4px 10px',
-                      background:'rgba(61,128,104,0.10)',
-                      border:'1px solid rgba(61,128,104,0.30)',
+                      background:'rgba(var(--accent-rgb),0.10)',
+                      border:'1px solid rgba(var(--accent-rgb),0.30)',
                       borderRadius: 999,
                       color:'var(--green)', fontSize: 10, fontWeight: 700,
-                      cursor:'pointer', fontFamily:'JetBrains Mono, monospace',
+                      cursor:'pointer', fontFamily:'Inter, sans-serif',
                       letterSpacing: 1, textTransform:'uppercase',
                     }}>Bearbeiten</button>
                   </div>
                   <div style={{ fontSize: 12, color:'var(--txt-2)', marginTop: 4 }}>@{handle}</div>
                   {joinedLabel && (
-                    <div style={{ fontSize: 11, color:'var(--txt-3)', marginTop: 6, fontFamily:'JetBrains Mono, monospace', letterSpacing: 1 }}>
+                    <div style={{ fontSize: 11, color:'var(--txt-3)', marginTop: 6, fontFamily:'Inter, sans-serif', letterSpacing: 1 }}>
                       Beigetreten · {joinedLabel}
                     </div>
                   )}
@@ -338,16 +338,16 @@ function ScreenProfile({ data, setData, user, reload }) {
             { label:'PRs', val: prsTotal, sub:'gesetzt' },
           ].map(s => (
             <Card key={s.label} padding={14}>
-              <div style={{ fontSize: 10, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontWeight: 600, fontFamily:'JetBrains Mono, monospace' }}>{s.label}</div>
-              <div className="ticker" style={{ fontSize: 28, fontWeight: 700, marginTop: 6, color: s.color || 'var(--txt)', lineHeight: 1 }}>{s.val}</div>
-              <div style={{ fontSize: 10, color:'var(--txt-3)', marginTop: 2, fontFamily:'JetBrains Mono, monospace', textTransform:'uppercase' }}>{s.sub}</div>
+              <div style={{ fontSize: 10, color:'var(--txt-2)', textTransform:'uppercase', letterSpacing:1.4, fontWeight: 600, fontFamily:'Inter, sans-serif' }}>{s.label}</div>
+              <div className="ticker serif" style={{ fontSize: 34, fontWeight: 600, marginTop: 6, color: s.color || 'var(--accent)', lineHeight: 1, fontStyle:'italic' }}>{s.val}</div>
+              <div style={{ fontSize: 10, color:'var(--txt-3)', marginTop: 2, fontFamily:'Inter, sans-serif', textTransform:'uppercase' }}>{s.sub}</div>
             </Card>
           ))}
         </div>
       </Section>
 
       {/* BADGES */}
-      <Section title="Meine Abzeichen" right={<span style={{ fontSize: 11, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace' }}>{earnedCount} / {badges.length}</span>}>
+      <Section title="Meine Abzeichen" right={<span style={{ fontSize: 11, color:'var(--txt-3)', fontFamily:'Inter, sans-serif' }}>{earnedCount} / {badges.length}</span>}>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 8 }}>
           {badges.map(b => (
             <div key={b.name} style={{
@@ -383,7 +383,7 @@ function ScreenProfile({ data, setData, user, reload }) {
                 }}><Icon.medal size={16} color="var(--gold)"/></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{p.ex}</div>
-                  <div style={{ fontSize: 10, color:'var(--txt-3)', marginTop: 2, fontFamily:'JetBrains Mono, monospace' }}>{p.date}</div>
+                  <div style={{ fontSize: 10, color:'var(--txt-3)', marginTop: 2, fontFamily:'Inter, sans-serif' }}>{p.date}</div>
                 </div>
                 <div className="ticker" style={{ fontSize: 14, fontWeight: 700, color: 'var(--gold)' }}>{p.v}</div>
               </div>
@@ -404,7 +404,7 @@ function ScreenProfile({ data, setData, user, reload }) {
           <div style={{ fontSize: 13, color:'var(--txt)', fontWeight: 600, marginBottom: 6 }}>
             Wie viele Tage pro Woche möchtest du trainieren?
           </div>
-          <div style={{ fontSize: 11, color:'var(--txt-3)', marginBottom: 12, fontFamily:'JetBrains Mono, monospace', letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 11, color:'var(--txt-3)', marginBottom: 12, fontFamily:'Inter, sans-serif', letterSpacing: 0.5 }}>
             100 % Baseline für den Wochenfortschritt
           </div>
           <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
@@ -439,7 +439,7 @@ function ScreenProfile({ data, setData, user, reload }) {
           <div style={{ fontSize: 13, color:'var(--txt)', fontWeight: 600, marginBottom: 6 }}>
             Sets pro Muskelgruppe
           </div>
-          <div style={{ fontSize: 11, color:'var(--txt-3)', marginBottom: 12, fontFamily:'JetBrains Mono, monospace', letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 11, color:'var(--txt-3)', marginBottom: 12, fontFamily:'Inter, sans-serif', letterSpacing: 0.5 }}>
             Wie viele Sets pro Woche? (Ziel · 100 %)
           </div>
           <div style={{ display:'grid', gap: 8 }}>
@@ -467,7 +467,7 @@ function ScreenProfile({ data, setData, user, reload }) {
                     WebkitAppearance:'none', MozAppearance:'textfield',
                   }}
                 />
-                <span style={{ fontSize: 11, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace', minWidth: 56 }}>Sets/W</span>
+                <span style={{ fontSize: 11, color:'var(--txt-3)', fontFamily:'Inter, sans-serif', minWidth: 56 }}>Sets/W</span>
               </div>
             ))}
           </div>
@@ -479,7 +479,7 @@ function ScreenProfile({ data, setData, user, reload }) {
             disabled={!goalsDirty}
             style={{
               flex: 1, padding:'14px 16px',
-              background: goalsDirty ? 'var(--grad)' : 'rgba(61,128,104,0.25)',
+              background: goalsDirty ? 'var(--grad)' : 'rgba(var(--accent-rgb),0.25)',
               border:'none', borderRadius: 14,
               color:'#fff', fontSize: 14, fontWeight: 700,
               cursor: goalsDirty ? 'pointer' : 'not-allowed',
@@ -494,7 +494,7 @@ function ScreenProfile({ data, setData, user, reload }) {
               background:'rgba(34,197,94,0.18)',
               border:'1px solid rgba(34,197,94,0.45)',
               color:'#22C55E', fontSize: 12, fontWeight: 700,
-              fontFamily:'JetBrains Mono, monospace', letterSpacing: 1,
+              fontFamily:'Inter, sans-serif', letterSpacing: 1,
               boxShadow:'0 6px 18px rgba(34,197,94,0.20)',
               whiteSpace:'nowrap',
             }}>Gespeichert ✓</div>
@@ -511,7 +511,7 @@ function ScreenProfile({ data, setData, user, reload }) {
           background:'rgba(34,197,94,0.18)',
           border:'1px solid rgba(34,197,94,0.45)',
           color:'#22C55E', fontSize: 13, fontWeight: 700,
-          fontFamily:'JetBrains Mono, monospace', letterSpacing: 0.6,
+          fontFamily:'Inter, sans-serif', letterSpacing: 0.6,
           boxShadow:'0 8px 24px rgba(34,197,94,0.25)',
           whiteSpace:'nowrap',
         }}>Alle Daten wurden zurückgesetzt.</div>
@@ -540,17 +540,17 @@ function ScreenProfile({ data, setData, user, reload }) {
                   }}>
                   <div style={{
                     width: 56, height: 56, borderRadius: 999,
-                    background: `linear-gradient(135deg, ${T.accent2} 0%, ${T.accent1} 100%)`,
+                    background: `linear-gradient(135deg, rgba(${T.accentRgb},0.85) 0%, rgba(${T.accentRgb},0.55) 100%)`,
                     boxShadow: active
-                      ? `0 0 0 3px #FFFFFF, 0 0 22px ${T.accent1}99`
-                      : `0 0 16px ${T.accent1}55`,
+                      ? `0 0 0 3px rgba(255,255,255,0.92), 0 0 22px rgba(${T.accentRgb},0.55)`
+                      : `0 0 16px rgba(${T.accentRgb},0.35)`,
                     transition: 'box-shadow .18s, transform .18s',
                     transform: active ? 'scale(1.04)' : 'scale(1)',
                   }}/>
                   <div style={{
                     fontSize: 11, fontWeight: 700,
                     color: active ? 'var(--txt)' : 'var(--txt-2)',
-                    fontFamily:'JetBrains Mono, monospace',
+                    fontFamily:'Inter, sans-serif',
                     textTransform:'uppercase', letterSpacing: 1,
                   }}>{T.label}</div>
                 </button>
@@ -574,7 +574,7 @@ function ScreenProfile({ data, setData, user, reload }) {
               cursor:'pointer'
             }}>
               <div style={{ flex: 1, fontSize: 14, fontWeight: 500, color: s.danger ? '#EF4444' : 'var(--txt)' }}>{s.label}</div>
-              {s.val && <div style={{ fontSize: 12, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace' }}>{s.val}</div>}
+              {s.val && <div style={{ fontSize: 12, color:'var(--txt-3)', fontFamily:'Inter, sans-serif' }}>{s.val}</div>}
               {!s.danger && <Icon.chevronRight size={14} color="var(--txt-3)"/>}
             </div>
           ))}
@@ -591,7 +591,7 @@ function ScreenProfile({ data, setData, user, reload }) {
         }}>
           <div style={{
             fontSize: 11, color: '#EF4444',
-            fontFamily:'JetBrains Mono, monospace',
+            fontFamily:'Inter, sans-serif',
             textTransform:'uppercase', letterSpacing: 1.4, fontWeight: 700,
             marginBottom: 6,
           }}>Gefahrenzone</div>
@@ -677,8 +677,8 @@ function ScreenProfile({ data, setData, user, reload }) {
 
 const stepBtn = {
   width: 40, height: 40, borderRadius: 10,
-  background:'rgba(61,128,104,0.10)',
-  border:'1px solid rgba(61,128,104,0.30)',
+  background:'rgba(var(--accent-rgb),0.10)',
+  border:'1px solid rgba(var(--accent-rgb),0.30)',
   color:'var(--green)', fontSize: 20, fontWeight: 700,
   cursor:'pointer', fontFamily:'inherit',
   display:'flex', alignItems:'center', justifyContent:'center',

@@ -8,22 +8,30 @@ const NAV = [
 ];
 
 // Themes — three options, applied to CSS vars on :root.
-// accent2 = deep end of brand gradient, accent1 = light end / solid accent.
+// New shape (post jade-glass refresh):
+//   accent     — solid hex (also drives gradient via accentRgb)
+//   accentRgb  — "r, g, b" string for rgba() composition
+//   cardRgb    — "r, g, b" string used for semi-transparent glass card layers
+//   bg         — page bg (subtle wash above bgDeep)
+//   bgDeep     — outermost background (under glass)
 const THEMES = {
   forest: {
     label: 'Forest',
-    bg: '#061410', bgDeep: '#020805', card: '#143028', line: '#1f4035',
-    accent1: '#00FF41', accent2: '#0a8a2c',
+    bg: '#080f0a', bgDeep: '#04080a',
+    accent: '#4A9B6E', accentRgb: '74, 155, 110',
+    cardRgb: '20, 40, 25',
   },
   ocean: {
     label: 'Ocean',
-    bg: '#060d1a', bgDeep: '#03070f', card: '#0e1a30', line: '#1e2a4a',
-    accent1: '#7C3AED', accent2: '#4F46E5',
+    bg: '#080d18', bgDeep: '#04060d',
+    accent: '#6B7AC4', accentRgb: '107, 122, 196',
+    cardRgb: '20, 26, 50',
   },
   rose: {
     label: 'Rose',
-    bg: '#1a060d', bgDeep: '#0d0307', card: '#2a1018', line: '#4a1a28',
-    accent1: '#FF6B9D', accent2: '#FF3B8F',
+    bg: '#180a0e', bgDeep: '#0d0307',
+    accent: '#C97A95', accentRgb: '201, 122, 149',
+    cardRgb: '50, 22, 32',
   },
 };
 const THEME_KEYS = Object.keys(THEMES);
@@ -85,28 +93,37 @@ function AppShell({ user }) {
 
   // Apply theme → CSS variables (root). All components read from these
   // — never hardcoded colors — so switching theme repaints instantly.
+  // The :root sheet already declares legacy aliases that reference these
+  // canonical names (e.g. --green: var(--accent)) so updates cascade.
   React.useEffect(() => {
     const T = THEMES[themeKey];
     const r = document.documentElement.style;
-    // New canonical names
-    r.setProperty('--accent-primary',   T.accent1);
-    r.setProperty('--accent-secondary', T.accent2);
-    // Legacy aliases — many existing components use these names.
-    r.setProperty('--g1', T.accent2);
-    r.setProperty('--g2', T.accent1);
-    r.setProperty('--grad',      `linear-gradient(135deg, ${T.accent2} 0%, ${T.accent1} 100%)`);
-    r.setProperty('--grad-soft', `linear-gradient(135deg, rgba(${hexRgb(T.accent2)},0.18), rgba(${hexRgb(T.accent1)},0.18))`);
-    r.setProperty('--green',       T.accent1);
-    r.setProperty('--green-deep',  T.accent2);
-    r.setProperty('--green-soft',  `rgba(${hexRgb(T.accent1)},0.14)`);
-    r.setProperty('--green-glow',  `rgba(${hexRgb(T.accent1)},0.40)`);
-    r.setProperty('--bg',       T.bg);
-    r.setProperty('--bg-deep',  T.bgDeep);
-    r.setProperty('--card',     T.card);
-    r.setProperty('--card-2',   mix(T.card, 'white', 0.06));
-    r.setProperty('--line',     T.line);
-    r.setProperty('--line-2',   mix(T.line, 'white', 0.20));
-    r.setProperty('--inactive', T.line);
+
+    // Canonical jade-glass tokens
+    r.setProperty('--bg',          T.bg);
+    r.setProperty('--bg-deep',     T.bgDeep);
+    r.setProperty('--accent',      T.accent);
+    r.setProperty('--accent-rgb',  T.accentRgb);
+    r.setProperty('--accent-soft', `rgba(${T.accentRgb}, 0.14)`);
+    r.setProperty('--accent-glow', `rgba(${T.accentRgb}, 0.40)`);
+    r.setProperty('--card-rgb',    T.cardRgb);
+    r.setProperty('--card',        `rgba(${T.cardRgb}, 0.55)`);
+    r.setProperty('--card-2',      `rgba(${T.cardRgb}, 0.65)`);
+    r.setProperty('--card-3',      `rgba(${T.cardRgb}, 0.75)`);
+
+    // Legacy aliases — kept in sync explicitly for rules that resolve
+    // var() in inline JS strings (e.g. components built before the
+    // jade refresh that read --green / --grad directly).
+    r.setProperty('--green',       T.accent);
+    r.setProperty('--green-deep',  T.accent);
+    r.setProperty('--green-soft',  `rgba(${T.accentRgb}, 0.14)`);
+    r.setProperty('--green-glow',  `rgba(${T.accentRgb}, 0.40)`);
+    r.setProperty('--grad',        `linear-gradient(135deg, rgba(${T.accentRgb},0.85) 0%, rgba(${T.accentRgb},0.55) 100%)`);
+    r.setProperty('--grad-soft',   `linear-gradient(135deg, rgba(${T.accentRgb},0.18), rgba(${T.accentRgb},0.06))`);
+    r.setProperty('--g1',          T.accent);
+    r.setProperty('--g2',          T.accent);
+    r.setProperty('--inactive',    'rgba(255,255,255,0.06)');
+
     document.body.style.background = T.bgDeep;
   }, [themeKey]);
 
@@ -248,13 +265,60 @@ function AppShell({ user }) {
         color: 'var(--txt)',
         overflow: 'hidden',
       }}>
-        <div className={t.grain ? 'grain' : ''} style={{
+        {/* CINEMATIC GYM ATMOSPHERE — amber light streaks + deep teal pools + theme halo */}
+        <div style={{
           position:'absolute', inset: 0, overflow:'hidden', pointerEvents:'none',
-          background:
-            'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(61,128,104,0.04), transparent 60%),' +
-            'radial-gradient(ellipse 60% 30% at 100% 100%, rgba(255,215,0,0.04), transparent 70%),' +
-            'var(--bg)',
-        }}/>
+          background: '#050706',
+        }}>
+          {/* DIAGONAL AMBER LIGHT STREAK — overhead gym spots hitting steel */}
+          <div style={{
+            position:'absolute', top: '-30%', left: '-20%', right: '-20%', height: '70%',
+            background: 'linear-gradient(118deg, transparent 0%, transparent 30%, rgba(218,170,90,0.45) 45%, rgba(232,190,110,0.55) 50%, rgba(218,170,90,0.35) 55%, transparent 72%, transparent 100%)',
+            filter: 'blur(28px)',
+            opacity: 0.85,
+            mixBlendMode: 'screen',
+          }}/>
+          {/* second softer amber streak */}
+          <div style={{
+            position:'absolute', top: '-10%', left: '-30%', right: '-10%', height: '60%',
+            background: 'linear-gradient(135deg, transparent 35%, rgba(180,135,70,0.30) 50%, transparent 65%)',
+            filter: 'blur(40px)',
+            mixBlendMode: 'screen',
+          }}/>
+          {/* deep teal pool bottom-left */}
+          <div style={{
+            position:'absolute', bottom: '-25%', left: '-25%', width: 480, height: 480, borderRadius:'50%',
+            background: 'radial-gradient(circle, rgba(40, 90, 95, 0.55) 0%, rgba(40, 90, 95, 0.18) 40%, transparent 70%)',
+            filter: 'blur(70px)',
+          }}/>
+          {/* deep teal pool top-left */}
+          <div style={{
+            position:'absolute', top: '-15%', left: '-30%', width: 420, height: 420, borderRadius:'50%',
+            background: 'radial-gradient(circle, rgba(28, 70, 80, 0.50) 0%, transparent 65%)',
+            filter: 'blur(60px)',
+          }}/>
+          {/* theme accent halo mid-right */}
+          <div style={{
+            position:'absolute', top: '40%', right: '-15%', width: 360, height: 360, borderRadius:'50%',
+            background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.30) 0%, transparent 65%)',
+            filter: 'blur(60px)',
+            mixBlendMode: 'screen',
+          }}/>
+          {/* warm floor glow */}
+          <div style={{
+            position:'absolute', bottom: '-10%', right: '5%', width: 320, height: 220, borderRadius:'50%',
+            background: 'radial-gradient(ellipse, rgba(200, 130, 70, 0.25) 0%, transparent 70%)',
+            filter: 'blur(50px)',
+            mixBlendMode: 'screen',
+          }}/>
+          {/* dark overlay — keeps content readable */}
+          <div style={{
+            position:'absolute', inset: 0,
+            background: 'linear-gradient(180deg, rgba(5,7,6,0.55) 0%, rgba(5,7,6,0.72) 100%)',
+          }}/>
+          {/* film grain on top */}
+          {t.grain && <div className="grain" style={{ position:'absolute', inset: 0 }}/>}
+        </div>
         <div className="screen-scroll" style={{
           position:'absolute', inset: 0,
           zIndex: 2,
@@ -284,25 +348,29 @@ function BottomNav({ active, onChange }) {
     return (
       <button key={n.id} onClick={() => onChange(n.id)} style={{
         flex: 1, border:'none', background:'transparent',
-        display:'flex', flexDirection:'column', alignItems:'center', gap: 4,
+        display:'flex', flexDirection:'column', alignItems:'center', gap: 5,
         padding: '6px 0', cursor:'pointer', position:'relative', minWidth: 0,
       }}>
-        {isActive && <div style={{
-          position:'absolute', top:-2, width: 4, height: 4, borderRadius: 4,
-          background:'var(--grad)', boxShadow:'0 0 6px rgba(61,128,104,0.45)'
-        }}/>}
         {isActive ? (
           <span style={{
             display:'inline-flex', alignItems:'center', justifyContent:'center',
-            width: 26, height: 26,
-            background:'var(--grad)',
-            borderRadius: 8,
-            boxShadow:'0 0 14px rgba(61,128,104,0.28)',
+            width: 30, height: 30,
+            background:'rgba(var(--accent-rgb),0.20)',
+            border:'1px solid rgba(var(--accent-rgb),0.45)',
+            borderTopColor:'rgba(255,255,255,0.30)',
+            borderLeftColor:'rgba(255,255,255,0.20)',
+            borderRadius: 10,
+            boxShadow:'0 0 18px rgba(var(--accent-rgb),0.35), inset 0 1px 0 rgba(255,255,255,0.18)',
           }}>
-            <I size={18} color="#fff"/>
+            <I size={16} color="var(--accent)"/>
           </span>
-        ) : <I size={20} color="var(--txt-3)"/>}
-        <div className={isActive ? 'grad-text' : ''} style={{ fontSize: 9, fontWeight: 600, letterSpacing: 0.4, fontFamily:'JetBrains Mono, monospace', textTransform:'uppercase', color: isActive ? undefined : 'var(--txt-3)', whiteSpace:'nowrap' }}>{n.label}</div>
+        ) : <I size={18} color="var(--txt-3)"/>}
+        <div style={{
+          fontSize: 9, fontWeight: 600, letterSpacing: 1.5, fontFamily:'Inter, sans-serif',
+          textTransform:'uppercase',
+          color: isActive ? 'var(--accent)' : 'var(--txt-3)',
+          whiteSpace:'nowrap',
+        }}>{n.label}</div>
       </button>
     );
   };
@@ -314,18 +382,13 @@ function BottomNav({ active, onChange }) {
       paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
       paddingLeft:  'env(safe-area-inset-left, 0px)',
       paddingRight: 'env(safe-area-inset-right, 0px)',
-      background:'linear-gradient(180deg, transparent 0%, rgba(8,8,8,0.85) 30%, rgba(8,8,8,0.95) 100%)',
-      backdropFilter:'blur(14px)',
-      WebkitBackdropFilter:'blur(14px)',
+      background:'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.7) 100%)',
     }}>
-      <div style={{
+      <div className="glass" style={{
         margin:'0 14px',
-        background:'rgba(13,31,26,0.85)',
-        border:'1px solid var(--line)',
-        borderRadius: 24,
-        padding: '8px 6px',
+        borderRadius: 22,
+        padding: '10px 6px',
         display:'flex', alignItems:'center',
-        boxShadow:'0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)'
       }}>
         {NAV.map(renderItem)}
       </div>

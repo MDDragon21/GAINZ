@@ -70,7 +70,7 @@ function ScreenStart({ data, setData, onStart }) {
               color: duration === t ? '#fff' : 'var(--txt)',
               fontSize: 15, fontWeight: 700,
               cursor:'pointer',
-              boxShadow: duration === t ? '0 0 22px rgba(61,128,104,0.28), 0 0 12px rgba(61,128,104,0.20)' : 'none',
+              boxShadow: duration === t ? '0 0 22px rgba(var(--accent-rgb),0.28), 0 0 12px rgba(var(--accent-rgb),0.20)' : 'none',
               transition:'all .15s'
             }}>{t}<span style={{ fontSize: 10, marginLeft: 2, opacity: 0.7 }}>min</span></button>
           ))}
@@ -85,11 +85,11 @@ function ScreenStart({ data, setData, onStart }) {
             return (
               <button key={m.name} onClick={() => toggle(m.name)} style={{
                 height: 60, borderRadius: 14,
-                border: `1px solid ${on ? 'rgba(61,128,104,0.28)' : 'var(--line)'}`,
-                background: on ? 'rgba(61,128,104,0.08)' : 'var(--card)',
+                border: `1px solid ${on ? 'rgba(var(--accent-rgb),0.28)' : 'var(--line)'}`,
+                background: on ? 'rgba(var(--accent-rgb),0.08)' : 'var(--card)',
                 display:'flex', alignItems:'center', gap: 10, padding: '0 14px',
                 cursor:'pointer', textAlign:'left',
-                boxShadow: on ? '0 0 14px rgba(61,128,104,0.16)' : 'none',
+                boxShadow: on ? '0 0 14px rgba(var(--accent-rgb),0.16)' : 'none',
                 transition:'all .15s'
               }}>
                 <MuscleGlyph name={m.name}/>
@@ -128,7 +128,7 @@ function ScreenStart({ data, setData, onStart }) {
 
       {/* STEP 4 - INTERVAL — auto-calculated from time + sets */}
       <Section title="④ Intervall (automatisch)">
-        <Card padding={16} style={{ background:'var(--card)', borderColor:'rgba(61,128,104,0.20)' }}>
+        <Card padding={16} style={{ background:'var(--card)', borderColor:'rgba(var(--accent-rgb),0.20)' }}>
           {totalSets === 0 ? (
             <div style={{ fontSize: 13, color:'var(--txt-2)', lineHeight: 1.5 }}>
               Wähle Muskelgruppen und Sätze um die Intervalle zu berechnen.
@@ -166,12 +166,12 @@ function ScreenStart({ data, setData, onStart }) {
               <div style={{ display:'flex', gap: 12, alignItems:'flex-start', marginBottom: 14 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                  background:'rgba(61,128,104,0.11)', border:'1px solid rgba(61,128,104,0.25)',
+                  background:'rgba(var(--accent-rgb),0.11)', border:'1px solid rgba(var(--accent-rgb),0.25)',
                   display:'flex', alignItems:'center', justifyContent:'center'
                 }}><Icon.bolt size={18} color="#fff"/></div>
                 <div style={{ flex: 1, fontSize: 14, lineHeight: 1.45 }}>
                   ⚡ Passt perfekt: <span className="grad-text" style={{ fontWeight: 700 }}>{work} Sek Arbeit / {rest} Sek Pause</span>
-                  <div style={{ fontSize: 11, color:'var(--txt-3)', marginTop: 4, fontFamily:'JetBrains Mono, monospace', letterSpacing: 0.5 }}>
+                  <div style={{ fontSize: 11, color:'var(--txt-3)', marginTop: 4, fontFamily:'Inter, sans-serif', letterSpacing: 0.5 }}>
                     {duration} Min · {totalSets} Sätze · ~{Math.round((work+rest)) } Sek/Satz
                   </div>
                 </div>
@@ -190,11 +190,11 @@ function ScreenStart({ data, setData, onStart }) {
                     padding:'10px 0', borderTop: '1px solid var(--line)',
                   }}>
                     <div>
-                      <div style={{ fontSize: 12, color:'var(--txt-2)', fontFamily: 'JetBrains Mono, monospace', textTransform:'uppercase', letterSpacing:1 }}>{r.label}</div>
+                      <div style={{ fontSize: 12, color:'var(--txt-2)', fontFamily: 'Inter, sans-serif', textTransform:'uppercase', letterSpacing:1 }}>{r.label}</div>
                       <div className="ticker" style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>
                         {r.value} <span style={{ fontSize: 11, color: 'var(--txt-3)' }}>sek</span>
                         {r.offset !== 0 && (
-                          <span style={{ marginLeft: 6, fontSize: 10, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace' }}>
+                          <span style={{ marginLeft: 6, fontSize: 10, color:'var(--txt-3)', fontFamily:'Inter, sans-serif' }}>
                             ({r.offset > 0 ? '+' : ''}{r.offset})
                           </span>
                         )}
@@ -233,7 +233,7 @@ function ScreenStart({ data, setData, onStart }) {
           disabled={!intervalReady}
         >Workout starten</CTA>
         {intervalReady && (
-          <div style={{ textAlign:'center', fontSize: 11, color:'var(--txt-3)', marginTop: 10, fontFamily:'JetBrains Mono, monospace' }}>
+          <div style={{ textAlign:'center', fontSize: 11, color:'var(--txt-3)', marginTop: 10, fontFamily:'Inter, sans-serif' }}>
             {totalSets} SÄTZE · ~{Math.round(totalSets * (work + rest) / 60)} MIN
           </div>
         )}
@@ -340,7 +340,7 @@ function GuidedWorkout({ session, onExit }) {
     }}>
       {/* corner controls */}
       <div style={{ display:'flex', justifyContent:'space-between', padding:'12px 22px', alignItems:'center' }}>
-        <button onClick={onExit} style={{ background:'none', border:'none', color:'var(--txt-2)', fontSize: 12, fontWeight: 600, fontFamily:'JetBrains Mono, monospace', cursor:'pointer', textTransform:'uppercase', letterSpacing: 1 }}>Abbrechen</button>
+        <button onClick={onExit} style={{ background:'none', border:'none', color:'var(--txt-2)', fontSize: 12, fontWeight: 600, fontFamily:'Inter, sans-serif', cursor:'pointer', textTransform:'uppercase', letterSpacing: 1 }}>Abbrechen</button>
         <div style={{ display:'flex', gap: 8, alignItems:'center' }}>
           <button
             onClick={() => {
@@ -360,7 +360,7 @@ function GuidedWorkout({ session, onExit }) {
               fontSize: 16, lineHeight: 1, cursor:'pointer',
               display:'flex', alignItems:'center', justifyContent:'center',
             }}>{muted ? '🔇' : '🔊'}</button>
-          <button onClick={() => setPaused(p => !p)} style={{ display:'flex', alignItems:'center', gap: 6, background:'rgba(255,255,255,0.05)', border:'1px solid var(--line)', color:'var(--txt)', padding:'6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, fontFamily:'JetBrains Mono, monospace', cursor:'pointer', textTransform:'uppercase', letterSpacing: 1 }}>
+          <button onClick={() => setPaused(p => !p)} style={{ display:'flex', alignItems:'center', gap: 6, background:'rgba(255,255,255,0.05)', border:'1px solid var(--line)', color:'var(--txt)', padding:'6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, fontFamily:'Inter, sans-serif', cursor:'pointer', textTransform:'uppercase', letterSpacing: 1 }}>
             <Icon.pause size={11} color="var(--txt)"/> {paused ? 'Weiter' : 'Pause'}
           </button>
         </div>
@@ -369,12 +369,12 @@ function GuidedWorkout({ session, onExit }) {
       {/* main content */}
       <div style={{ flex: 1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding: '0 24px' }}>
         <div style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: 2.4, fontFamily:'JetBrains Mono, monospace',
+          fontSize: 11, fontWeight: 700, letterSpacing: 2.4, fontFamily:'Inter, sans-serif',
           color: accent, padding: '6px 14px', borderRadius: 999,
-          background: phase === 'work' ? 'rgba(61,128,104,0.08)' : 'rgba(61,128,104,0.11)',
-          border: `1px solid ${phase === 'work' ? 'rgba(61,128,104,0.25)' : 'rgba(61,128,104,0.28)'}`,
+          background: phase === 'work' ? 'rgba(var(--accent-rgb),0.08)' : 'rgba(var(--accent-rgb),0.11)',
+          border: `1px solid ${phase === 'work' ? 'rgba(var(--accent-rgb),0.25)' : 'rgba(var(--accent-rgb),0.28)'}`,
           textTransform:'uppercase',
-          boxShadow: phase === 'work' ? '0 0 18px rgba(61,128,104,0.25)' : '0 0 18px rgba(61,128,104,0.28)',
+          boxShadow: phase === 'work' ? '0 0 18px rgba(var(--accent-rgb),0.25)' : '0 0 18px rgba(var(--accent-rgb),0.28)',
           animation: paused ? 'none' : 'softPulse 1.6s ease-in-out infinite',
           display:'flex', alignItems:'center', gap: 6,
         }}>
@@ -383,7 +383,7 @@ function GuidedWorkout({ session, onExit }) {
         </div>
 
         <div style={{ fontSize: 28, fontWeight: 700, marginTop: 22, letterSpacing:-0.5 }}>{exercise}</div>
-        <div style={{ fontSize: 13, color:'var(--txt-2)', marginTop: 4, fontFamily:'JetBrains Mono, monospace', textTransform:'uppercase', letterSpacing: 1.4 }}>
+        <div style={{ fontSize: 13, color:'var(--txt-2)', marginTop: 4, fontFamily:'Inter, sans-serif', textTransform:'uppercase', letterSpacing: 1.4 }}>
           Set {setIdx} von {totalSets} · {muscle}
         </div>
 
@@ -398,7 +398,7 @@ function GuidedWorkout({ session, onExit }) {
           </svg>
           <div style={{ position:'absolute', inset: 0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
             <div className="ticker" style={{ fontSize: 76, fontWeight: 700, lineHeight: 1, color: '#fff', letterSpacing:-3 }}>{fmt(tick)}</div>
-            <div style={{ fontSize: 11, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace', letterSpacing:1.4, textTransform:'uppercase', marginTop: 6 }}>
+            <div style={{ fontSize: 11, color:'var(--txt-3)', fontFamily:'Inter, sans-serif', letterSpacing:1.4, textTransform:'uppercase', marginTop: 6 }}>
               von {fmt(totalT)}
             </div>
           </div>
@@ -410,7 +410,7 @@ function GuidedWorkout({ session, onExit }) {
             <div key={i} style={{
               width: i === setIdx-1 ? 26 : 7, height: 7, borderRadius: 7,
               background: i < setIdx ? 'var(--grad)' : '#2a2a3a',
-              boxShadow: i === setIdx-1 ? '0 0 8px rgba(61,128,104,0.36)' : 'none',
+              boxShadow: i === setIdx-1 ? '0 0 8px rgba(var(--accent-rgb),0.36)' : 'none',
               transition:'all .3s'
             }}/>
           ))}
@@ -436,11 +436,11 @@ function GuidedWorkout({ session, onExit }) {
 
 const adjBtn = (enabled) => ({
   width: 44, height: 36, borderRadius: 10,
-  background: enabled ? 'rgba(61,128,104,0.10)' : 'rgba(255,255,255,0.03)',
-  border: `1px solid ${enabled ? 'rgba(61,128,104,0.30)' : 'var(--line)'}`,
+  background: enabled ? 'rgba(var(--accent-rgb),0.10)' : 'rgba(255,255,255,0.03)',
+  border: `1px solid ${enabled ? 'rgba(var(--accent-rgb),0.30)' : 'var(--line)'}`,
   color: enabled ? 'var(--green)' : 'var(--txt-3)',
   fontSize: 12, fontWeight: 700,
-  fontFamily: 'JetBrains Mono, monospace', letterSpacing: 0.5,
+  fontFamily: 'Inter, sans-serif', letterSpacing: 0.5,
   cursor: enabled ? 'pointer' : 'not-allowed',
 });
 
