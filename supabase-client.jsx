@@ -144,6 +144,23 @@ const gainz = {
       if (error) throw error;
       return count || 0;
     },
+    // Distinct training-day count for the user in [weekStartISO, +7d).
+    async uniqueDaysThisWeek(userId, weekStartISO) {
+      const start = new Date(weekStartISO + 'T00:00:00');
+      const end = new Date(start); end.setDate(start.getDate() + 7);
+      const { data, error } = await sb.from('workout_sessions')
+        .select('started_at')
+        .eq('user_id', userId).eq('status', 'done')
+        .gte('started_at', start.toISOString())
+        .lt('started_at', end.toISOString());
+      if (error) throw error;
+      const days = new Set();
+      (data || []).forEach(r => {
+        const d = new Date(r.started_at);
+        days.add(`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`);
+      });
+      return days.size;
+    },
     async muscleSets7d(userId) {
       const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
       const { data: ses, error: e1 } = await sb.from('workout_sessions')
@@ -321,13 +338,21 @@ window.useGainzData = function useGainzData(user) {
     if (!user) { setData(null); setLoading(false); return; }
     setLoading(true);
     try {
-      const [profile, heatmap, quote, weightsDesc, sessionsCount, muscleSets7d] = await Promise.all([
+      // Current week's Monday in YYYY-MM-DD (local time)
+      const _now = new Date();
+      const _idx = (_now.getDay() + 6) % 7;
+      const _mon = new Date(_now); _mon.setDate(_now.getDate() - _idx);
+      const _p = (n) => String(n).padStart(2, '0');
+      const mondayISO = `${_mon.getFullYear()}-${_p(_mon.getMonth()+1)}-${_p(_mon.getDate())}`;
+
+      const [profile, heatmap, quote, weightsDesc, sessionsCount, muscleSets7d, uniqueDaysWeek] = await Promise.all([
         gainz.profile.get(user.id),
         gainz.muscles.map(user.id),
         gainz.quotes.random(),
         gainz.weight.list(user.id, 50),
         gainz.sessions.count(user.id),
         gainz.sessions.muscleSets7d(user.id),
+        gainz.sessions.uniqueDaysThisWeek(user.id, mondayISO),
       ]);
       // chronological ascending for chart consumption
       const weightLogs = [...weightsDesc].reverse().map(r => ({
@@ -344,7 +369,9 @@ window.useGainzData = function useGainzData(user) {
       setData({
         name:        profile.display_name,
         streak:      profile.streak,
-        weekDone:    profile.week_done,
+        // weekDone derives from DISTINCT training days this week,
+        // not from a stored counter. Two sessions same day = 1.
+        weekDone:    uniqueDaysWeek,
         weekGoal:    profile.week_goal,
         weight:      Number(profile.current_weight ?? 0),
         weightDelta: delta,        // null when fewer than 2 logs

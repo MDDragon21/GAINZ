@@ -130,29 +130,39 @@ function ScreenTraining({ data, setData, user, reload }) {
       // 3) Finalize
       await window.gainz.sessions.finish(sess.id, { duration_min: null });
 
-      // 4) Profile: week_done + streak — only count the FIRST workout of the day
+      // 4) Profile: streak only.
+      // week_done is derived dynamically from distinct training days
+      // in the current week (see useGainzData) — never a stored counter,
+      // so two sessions on the same day naturally count as one day.
       const todayYMD = ymd(new Date());
       const yest = new Date(); yest.setDate(yest.getDate() - 1);
       const yestYMD = ymd(yest);
       const priorDate = priorLastTrained;
-      const isFirstToday = priorDate !== todayYMD;
-      console.log('[training save] priorLastTrained:', priorDate, 'today:', todayYMD, 'isFirstToday:', isFirstToday);
+
+      // Confirm via explicit query whether this is the first done session today.
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const todayEnd   = new Date(todayStart); todayEnd.setDate(todayEnd.getDate() + 1);
+      const { data: todaySessions, error: todayErr } = await window.sb
+        .from('workout_sessions')
+        .select('id')
+        .eq('user_id', user.id).eq('status', 'done')
+        .gte('started_at', todayStart.toISOString())
+        .lt('started_at',  todayEnd.toISOString());
+      if (todayErr) console.warn('[training save] today count query failed', todayErr);
+      const isFirstToday = (todaySessions || []).length <= 1;
+      console.log('[training save] priorLastTrained:', priorDate, 'today:', todayYMD, 'todaySessions:', todaySessions?.length, 'isFirstToday:', isFirstToday);
 
       let nextStreak = Number(data.streak) || 0;
-      if (priorDate === todayYMD) {
-        // already trained today → keep streak as-is, do not bump
+      if (!isFirstToday) {
+        // Already trained today → streak unchanged.
       } else if (priorDate === yestYMD) {
         nextStreak = nextStreak + 1;
       } else {
         nextStreak = 1;
       }
 
-      const profilePatch = { streak: nextStreak };
-      if (isFirstToday) {
-        profilePatch.week_done = (Number(data.weekDone) || 0) + 1;
-      }
-      console.log('[training save] profile patch', profilePatch);
-      await window.gainz.profile.update(user.id, profilePatch);
+      console.log('[training save] streak patch', { from: data.streak, to: nextStreak });
+      await window.gainz.profile.update(user.id, { streak: nextStreak });
 
       // 5) Recompute muscle_status for the current week from real sessions.
       const weekStart = new Date(monday);
