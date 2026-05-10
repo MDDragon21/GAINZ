@@ -191,13 +191,34 @@ function ScreenTraining({ data, setData, user, reload }) {
       }));
 
       // 6) Leaderboard: increment by THIS session's contribution.
-      //    score += sessionSets, workouts += 1 (via upsert).
+      //    score += sessionSets, workouts += 1 (read existing -> upsert).
       const sessionSets = trainedMuscles.reduce((a, m) => a + Number(m.sets), 0);
       const weekStartISO = ymd(weekStart);
       console.log('[training save] leaderboard call', { userId: user.id, weekStartISO, sessionSets });
       try {
-        const result = await window.gainz.leaderboard.addSessionContribution(user.id, weekStartISO, sessionSets);
-        console.log('[training save] leaderboard write success', result);
+        // Get existing leaderboard row
+        const { data: existing } = await window.sb
+          .from('leaderboard_weekly')
+          .select('score, workouts')
+          .eq('user_id', user.id)
+          .eq('week_start', weekStartISO)
+          .single();
+        const newScore = (existing?.score || 0) + sessionSets;
+        const newWorkouts = (existing?.workouts || 0) + 1;
+        const { data: lbData, error: lbError } = await window.sb
+          .from('leaderboard_weekly')
+          .upsert({
+            user_id: user.id,
+            week_start: weekStartISO,
+            score: newScore,
+            workouts: newWorkouts
+          }, { onConflict: 'user_id,week_start' });
+        if (lbError) {
+          console.error('[training save] Leaderboard error:', lbError);
+          setError(`Leaderboard nicht aktualisiert: ${lbError.message || lbError}`);
+        } else {
+          console.log('[training save] leaderboard upsert success', { newScore, newWorkouts, data: lbData });
+        }
       } catch (e) {
         console.error('[training save] leaderboard write FAILED', e);
         setError(`Leaderboard nicht aktualisiert: ${e?.message || e}`);
