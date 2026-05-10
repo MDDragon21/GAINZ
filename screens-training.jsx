@@ -67,8 +67,6 @@ function ScreenTraining({ data, setData, user, reload }) {
   const [trackingMode, setTrackingMode] = React.useState({});
   const [setsBy, setSetsBy] = React.useState({});  // empty by default — no fake plan
   const [note, setNote] = React.useState('');
-  const [wins, setWins] = React.useState('');
-  const [hard, setHard] = React.useState('');
 
   const [saving, setSaving] = React.useState(false);
   const [error, setError]   = React.useState(null);
@@ -122,8 +120,9 @@ function ScreenTraining({ data, setData, user, reload }) {
         started_at: startedAt.toISOString(),
         mood: activeMood || null,
         note: note ? note.trim() : null,
-        wins: wins ? wins.trim() : null,
-        hard: hard ? hard.trim() : null,
+        // wins/hard fields removed in favor of single Notiz field.
+        wins: null,
+        hard: null,
       });
       // 2) Trained muscle rows
       await window.gainz.sessions.addMuscles(sess.id, trainedMuscles);
@@ -225,7 +224,7 @@ function ScreenTraining({ data, setData, user, reload }) {
       }
 
       // 7) Reset form
-      setActiveMood(null); setNote(''); setWins(''); setHard('');
+      setActiveMood(null); setNote('');
       setSetsBy({}); setTrackingMode({});
 
       // 8) Refresh global app data so every screen reflects new state.
@@ -349,48 +348,49 @@ function ScreenTraining({ data, setData, user, reload }) {
           </Section>
 
           <Section title="Stimmung">
-            <div style={{ display:'flex', gap: 8 }}>
-              {['💪','😤','⚡','😴','🔥'].map(e => (
-                <button key={e} onClick={() => setActiveMood(activeMood === e ? null : e)} style={{
-                  flex: 1, height: 48, borderRadius: 14,
-                  border: `1px solid ${activeMood === e ? 'rgba(var(--accent-rgb),0.28)' : 'var(--line)'}`,
-                  background: activeMood === e ? 'rgba(var(--accent-rgb),0.09)' : 'rgba(140,150,255,0.02)',
-                  fontSize: 22, cursor:'pointer',
-                  boxShadow: activeMood === e ? '0 0 16px rgba(var(--accent-rgb),0.20)' : 'none',
-                  transition:'all .15s'
-                }}>{e}</button>
-              ))}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 6 }}>
+              {MOODS.map(m => {
+                const on = activeMood === m.emoji;
+                return (
+                  <button key={m.emoji} onClick={() => setActiveMood(on ? null : m.emoji)} style={{
+                    padding: '8px 4px 10px', borderRadius: 14,
+                    border: `1px solid ${on ? 'rgba(var(--accent-rgb),0.50)' : 'var(--line)'}`,
+                    background: on ? 'rgba(var(--accent-rgb),0.12)' : 'rgba(255,255,255,0.02)',
+                    cursor:'pointer',
+                    boxShadow: on
+                      ? '0 0 18px rgba(var(--accent-bloom-rgb, var(--accent-rgb)),0.25), inset 0 1px 0 rgba(255,255,255,0.08)'
+                      : 'none',
+                    transition:'all .15s',
+                    display:'flex', flexDirection:'column', alignItems:'center', gap: 4,
+                    fontFamily:'inherit',
+                    color: on ? 'var(--accent)' : 'var(--txt-2)',
+                    minWidth: 0,
+                  }} title={m.title}>
+                    <div style={{ fontSize: 22, lineHeight: 1 }}>{m.emoji}</div>
+                    <div style={{
+                      fontSize: 9, fontWeight: 600,
+                      letterSpacing: 0.4,
+                      textAlign:'center', lineHeight: 1.15,
+                      color: on ? 'var(--accent)' : 'var(--txt-3)',
+                      whiteSpace:'normal', overflowWrap:'anywhere',
+                    }}>{m.label}</div>
+                  </button>
+                );
+              })}
             </div>
           </Section>
 
           <Section title="Notiz zum Training">
             <Card padding={0}>
-              <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0,300))} placeholder="z.B. Schultern fühlten sich heute solide an…"
+              <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0,300))} placeholder="Wie war's? Was ging gut, was war hart, was nimmst du mit?"
                 style={{
-                  width:'100%', minHeight: 70, padding: 14,
+                  width:'100%', minHeight: 90, padding: 14,
                   background: 'transparent', border: 'none', outline:'none',
                   resize:'none', color: 'var(--txt)', fontSize: 14,
                   fontFamily: 'inherit'
                 }}/>
               <div style={{ padding: '0 14px 10px', textAlign:'right', fontSize: 11, color: note.length > 250 ? 'var(--gold)' : 'var(--txt-3)', fontFamily: 'Inter, sans-serif' }}>{note.length}/300</div>
             </Card>
-          </Section>
-
-          <Section title="Reflexion">
-            <div style={{ display:'grid', gap: 10 }}>
-              {[{ label:'Was gut lief', value: wins, set: setWins, ph: 'PRs, Form, Energie…' },
-                { label:'Was schwer war', value: hard, set: setHard, ph: 'Knie, Atem, Konzentration…' }].map(f => (
-                <Card key={f.label} padding={12}>
-                  <div style={{ fontSize: 11, color: 'var(--txt-2)', fontWeight: 600, fontFamily:'Inter, sans-serif', textTransform:'uppercase', letterSpacing:1.2 }}>{f.label}</div>
-                  <input value={f.value} onChange={(e) => f.set(e.target.value)} placeholder={f.ph}
-                    style={{
-                      width:'100%', marginTop: 6, padding: 0,
-                      background: 'transparent', border:'none', outline:'none',
-                      color:'var(--txt)', fontSize: 14, fontFamily:'inherit'
-                    }}/>
-                </Card>
-              ))}
-            </div>
           </Section>
 
           <Section style={{ marginBottom: 16, position:'relative' }}>
@@ -427,6 +427,15 @@ function ScreenTraining({ data, setData, user, reload }) {
     </div>
   );
 }
+
+// Mood catalogue — ordered worst → best.
+const MOODS = [
+  { emoji: '🐷', label: 'Schweinehund',     title: 'Hatte keinen Bock, aber hab’s gemacht' },
+  { emoji: '😤', label: 'Durchgekämpft',    title: 'War hart, aber ich hab’s durchgezogen' },
+  { emoji: '💪', label: 'Solides Training', title: 'Normaler guter Tag' },
+  { emoji: '⭐', label: 'Starkes Training', title: 'Richtig gut, alles hat gepasst' },
+  { emoji: '🔥', label: 'On Fire',          title: 'Absoluter Ausnahmetag' },
+];
 
 // ─── VERLAUF TAB ───────────────────────────────────────────────────────────
 const MUSCLE_LABEL_DE = {
@@ -708,15 +717,14 @@ function SessionCard({ session, expanded, onToggle, deltas }) {
               </div>
             )}
 
-            {/* Wins */}
+            {/* Legacy wins/hard fields are still rendered for OLD sessions saved
+                before the simplification — new sessions only have Notiz. */}
             {session.wins && (
               <div>
                 <div className="label-cap" style={{ marginBottom: 8 }}>Was gut lief</div>
                 <div style={{ fontSize: 13, lineHeight: 1.55, color:'var(--txt)' }}>{session.wins}</div>
               </div>
             )}
-
-            {/* Hard */}
             {session.hard && (
               <div>
                 <div className="label-cap" style={{ marginBottom: 8 }}>Was schwer war</div>
