@@ -179,12 +179,19 @@ function ScreenTraining({ data, setData, user, reload }) {
         return window.gainz.muscles.set(user.id, m, status);
       }));
 
-      // 6) Leaderboard: simple score = total sets logged this week × 10
+      // 6) Leaderboard: increment by THIS session's contribution.
+      //    score += sessionSets, workouts += 1
+      //    (don't recompute from week — atomic-ish increment is simpler
+      //    and matches the user's mental model.)
       try {
-        const totalSets = Object.values(sums).reduce((a,b) => a+b, 0);
+        const sessionSets = trainedMuscles.reduce((a, m) => a + Number(m.sets), 0);
         const weekStartISO = ymd(weekStart);
-        await window.gainz.leaderboard.upsertMine(user.id, weekStartISO, totalSets * 10, doneIds.length);
-      } catch (e) { console.error('leaderboard upsert failed', e); }
+        await window.gainz.leaderboard.addSessionContribution(user.id, weekStartISO, sessionSets);
+      } catch (e) {
+        console.error('leaderboard write failed', e);
+        // Surface alongside save success so user knows leaderboard didn't update.
+        setError(`Leaderboard nicht aktualisiert: ${e?.message || e}`);
+      }
 
       // 7) Reset form
       setActiveMood(null); setNote(''); setWins(''); setHard('');
