@@ -175,6 +175,45 @@ const gainz = {
       rows.forEach(r => { m[r.muscle] = (m[r.muscle] || 0) + r.sets; });
       return m;
     },
+    // Compute consecutive-day streak from distinct done training dates.
+    // Streak rules:
+    //   - if user trained today  → start counting at today
+    //   - else if trained yesterday → start counting at yesterday
+    //     (today still has time to extend the streak)
+    //   - else                    → 0 (broken)
+    async computeStreak(userId) {
+      const { data, error } = await sb.from('workout_sessions')
+        .select('started_at')
+        .eq('user_id', userId).eq('status', 'done');
+      if (error) throw error;
+      const ymd = (d) => {
+        const p = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+      };
+      const set = new Set();
+      (data || []).forEach(r => {
+        const d = new Date(r.started_at);
+        d.setHours(0,0,0,0);
+        set.add(ymd(d));
+      });
+      if (set.size === 0) return 0;
+
+      const today = new Date(); today.setHours(0,0,0,0);
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      const todayStr = ymd(today), yestStr = ymd(yesterday);
+
+      let cursor;
+      if (set.has(todayStr))      cursor = new Date(today);
+      else if (set.has(yestStr))  cursor = new Date(yesterday);
+      else return 0;
+
+      let count = 0;
+      while (set.has(ymd(cursor))) {
+        count++;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+      return count;
+    },
     async lastTrainedDate(userId) {
       const { data, error } = await sb.from('workout_sessions')
         .select('started_at')
@@ -345,7 +384,7 @@ window.useGainzData = function useGainzData(user) {
       const _p = (n) => String(n).padStart(2, '0');
       const mondayISO = `${_mon.getFullYear()}-${_p(_mon.getMonth()+1)}-${_p(_mon.getDate())}`;
 
-      const [profile, heatmap, quote, weightsDesc, sessionsCount, muscleSets7d, uniqueDaysWeek] = await Promise.all([
+      const [profile, heatmap, quote, weightsDesc, sessionsCount, muscleSets7d, uniqueDaysWeek, streakDays] = await Promise.all([
         gainz.profile.get(user.id),
         gainz.muscles.map(user.id),
         gainz.quotes.random(),
@@ -353,6 +392,7 @@ window.useGainzData = function useGainzData(user) {
         gainz.sessions.count(user.id),
         gainz.sessions.muscleSets7d(user.id),
         gainz.sessions.uniqueDaysThisWeek(user.id, mondayISO),
+        gainz.sessions.computeStreak(user.id),
       ]);
       // chronological ascending for chart consumption
       const weightLogs = [...weightsDesc].reverse().map(r => ({
@@ -368,7 +408,9 @@ window.useGainzData = function useGainzData(user) {
         : null;
       setData({
         name:        profile.display_name,
-        streak:      profile.streak,
+        // streak derived from consecutive distinct training days,
+        // not from a stored counter.
+        streak:      streakDays,
         // weekDone derives from DISTINCT training days this week,
         // not from a stored counter. Two sessions same day = 1.
         weekDone:    uniqueDaysWeek,

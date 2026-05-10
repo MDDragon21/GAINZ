@@ -4,7 +4,7 @@ const { useState, useEffect, useRef, useMemo } = React;
 // ─── ICONS ─────────────────────────────────────────────
 // Stroke-style minimal SVGs. All accept size + color via props.
 const ic = (paths, vb = 24) => ({ size = 22, color = 'currentColor', stroke = 1.8, fill = 'none', style }) => (
-  <svg width={size} height={size} viewBox={`0 0 ${vb} ${vb}`} fill={fill} stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" style={style}>
+  <svg width={size} height={size} viewBox={`0 0 ${vb} ${vb}`} fill={fill} stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" style={{ color, ...style }}>
     {paths}
   </svg>
 );

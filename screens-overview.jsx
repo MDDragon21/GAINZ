@@ -156,26 +156,38 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
       {/* STREAK + WEEKLY GOAL — twin tile */}
       <Section>
         <div style={{ display:'grid', gridTemplateColumns:'1.1fr 1fr', gap: 10 }}>
-          <Card padding={16} gold style={{
-            position:'relative', overflow:'hidden',
-          }}>
-            <div style={{ position:'absolute', right:-10, top:-12, opacity:0.10, animation:'flameFlicker 2.4s ease-in-out infinite' }}>
-              <Icon.flame size={86} color="var(--gold)"/>
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:6, color:'var(--gold)', fontSize:11, fontWeight:600, letterSpacing:1.4, textTransform:'uppercase', fontFamily:'Inter, sans-serif' }}>
-              <Icon.flame size={14} color="var(--gold)" style={{ animation:'flameFlicker 1.6s ease-in-out infinite' }}/>
-              Streak
-            </div>
-            <div className="ticker serif" style={{ fontSize: 64, fontWeight: 600, lineHeight: 1, marginTop: 6, color:'var(--gold)', letterSpacing:-1.5, fontStyle:'italic', position:'relative' }}>
-              {streak}
-              <span style={{
-                position:'absolute', inset:-6, borderRadius:20,
-                background:'radial-gradient(circle, rgba(var(--gold-rgb),0.15), transparent 70%)',
-                animation:'softPulse 2s ease-in-out infinite', zIndex:-1
-              }}/>
-            </div>
-            <div style={{ fontSize: 12, color:'var(--txt-2)', marginTop: 4, fontWeight: 500 }}>Tage am Stück</div>
-          </Card>
+          {(() => {
+            // Flame is gold when streak is alive, dark red (dormant) when 0 — never grey.
+            const streakActive = (Number(streak) || 0) >= 1;
+            const flameColor = streakActive ? 'var(--gold)' : '#8B1A1A';
+            const numColor   = streakActive ? 'var(--gold)' : 'var(--txt-2)';
+            return (
+              <Card padding={16} gold={streakActive} style={{
+                position:'relative', overflow:'hidden',
+              }}>
+                <div style={{ position:'absolute', right:-10, top:-12, opacity: streakActive ? 0.10 : 0.18, animation:'flameFlicker 2.4s ease-in-out infinite' }}>
+                  <Icon.flame size={86} color={flameColor}/>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6, color: flameColor, fontSize:11, fontWeight:600, letterSpacing:1.4, textTransform:'uppercase', fontFamily:'Inter, sans-serif' }}>
+                  <Icon.flame size={14} color={flameColor} style={{ animation:'flameFlicker 1.6s ease-in-out infinite' }}/>
+                  Streak
+                </div>
+                <div className="ticker serif" style={{ fontSize: 64, fontWeight: 600, lineHeight: 1, marginTop: 6, color: numColor, letterSpacing:-1.5, fontStyle:'italic', position:'relative' }}>
+                  {streak}
+                  <span style={{
+                    position:'absolute', inset:-6, borderRadius:20,
+                    background: streakActive
+                      ? 'radial-gradient(circle, rgba(var(--gold-rgb),0.15), transparent 70%)'
+                      : 'radial-gradient(circle, rgba(139,26,26,0.10), transparent 70%)',
+                    animation:'softPulse 2s ease-in-out infinite', zIndex:-1
+                  }}/>
+                </div>
+                <div style={{ fontSize: 12, color:'var(--txt-2)', marginTop: 4, fontWeight: 500 }}>
+                  {streakActive ? 'Tage am Stück' : 'Trainiere heute, um zu starten'}
+                </div>
+              </Card>
+            );
+          })()}
           <Card padding={16}>
             <div className="label-cap">Wochenziel</div>
             <div className="ticker serif" style={{ fontSize: 36, fontWeight: 600, marginTop: 12, lineHeight: 1, color:'var(--accent)', fontStyle:'italic' }}>
