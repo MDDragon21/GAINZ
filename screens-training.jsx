@@ -171,28 +171,33 @@ function ScreenTraining({ data, setData, user, reload }) {
       const weekStartISO = ymd(weekStart);
       console.log('[training save] leaderboard call', { userId: user.id, weekStartISO, sessionSets });
       try {
-        // Get existing leaderboard row
-        const { data: existing } = await window.sb
+        // Get existing leaderboard row (maybeSingle — no error when absent).
+        const { data: existing, error: lbReadErr } = await window.sb
           .from('leaderboard_weekly')
           .select('score, workouts')
           .eq('user_id', user.id)
           .eq('week_start', weekStartISO)
-          .single();
-        const newScore = (existing?.score || 0) + sessionSets;
-        const newWorkouts = (existing?.workouts || 0) + 1;
+          .maybeSingle();
+        if (lbReadErr) console.error('[training save] leaderboard READ error:', lbReadErr);
+        console.log('[training save] leaderboard existing row:', existing);
+
+        const newScore    = (Number(existing?.score)    || 0) + sessionSets;
+        const newWorkouts = (Number(existing?.workouts) || 0) + 1;
+
         const { data: lbData, error: lbError } = await window.sb
           .from('leaderboard_weekly')
           .upsert({
             user_id: user.id,
             week_start: weekStartISO,
             score: newScore,
-            workouts: newWorkouts
-          }, { onConflict: 'user_id,week_start' });
+            workouts: newWorkouts,
+          }, { onConflict: 'user_id,week_start' })
+          .select();
         if (lbError) {
           console.error('[training save] Leaderboard error:', lbError);
-          setError(`Leaderboard nicht aktualisiert: ${lbError.message || lbError}`);
+          setError(`Leaderboard nicht aktualisiert: ${lbError.message || lbError.code || JSON.stringify(lbError)}`);
         } else {
-          console.log('[training save] leaderboard upsert success', { newScore, newWorkouts, data: lbData });
+          console.log('[training save] leaderboard upsert success', { newScore, newWorkouts, returned: lbData });
         }
       } catch (e) {
         console.error('[training save] leaderboard write FAILED', e);
