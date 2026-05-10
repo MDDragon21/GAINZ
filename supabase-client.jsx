@@ -214,30 +214,30 @@ const gainz = {
     },
     // Add a single session's contribution to the user's weekly row:
     //   workouts += 1, score += sessionSets
-    // Existing row → UPDATE; otherwise INSERT.
+    // Single round-trip via upsert(onConflict='user_id,week_start')
     async addSessionContribution(userId, weekStartISO, sessionSets) {
+      console.log('[leaderboard] add session contribution', { userId, weekStartISO, sessionSets });
+      // Read prior totals so the upsert can carry incremented values.
       const { data: existing, error: selErr } = await sb.from('leaderboard_weekly')
         .select('score, workouts')
         .eq('user_id', userId).eq('week_start', weekStartISO).maybeSingle();
-      if (selErr) throw selErr;
-      if (existing) {
-        const { error: updErr } = await sb.from('leaderboard_weekly')
-          .update({
-            score:    (Number(existing.score)    || 0) + Number(sessionSets || 0),
-            workouts: (Number(existing.workouts) || 0) + 1,
-          })
-          .eq('user_id', userId).eq('week_start', weekStartISO);
-        if (updErr) throw updErr;
-      } else {
-        const { error: insErr } = await sb.from('leaderboard_weekly')
-          .insert({
-            user_id: userId,
-            week_start: weekStartISO,
-            score: Number(sessionSets || 0),
-            workouts: 1,
-          });
-        if (insErr) throw insErr;
-      }
+      if (selErr) { console.error('[leaderboard] read err', selErr); throw selErr; }
+      console.log('[leaderboard] existing row', existing);
+
+      const newScore    = (Number(existing?.score)    || 0) + Number(sessionSets || 0);
+      const newWorkouts = (Number(existing?.workouts) || 0) + 1;
+
+      const { data, error } = await sb.from('leaderboard_weekly')
+        .upsert({
+          user_id:    userId,
+          week_start: weekStartISO,
+          score:      newScore,
+          workouts:   newWorkouts,
+        }, { onConflict: 'user_id,week_start' })
+        .select();
+      if (error) { console.error('[leaderboard] upsert err', error); throw error; }
+      console.log('[leaderboard] upsert ok', data);
+      return data;
     },
   },
 

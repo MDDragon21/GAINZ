@@ -130,28 +130,29 @@ function ScreenTraining({ data, setData, user, reload }) {
       // 3) Finalize
       await window.gainz.sessions.finish(sess.id, { duration_min: null });
 
-      // 4) Profile: week_done + streak
-      // last_trained is derived from workout_sessions, not a profile column.
-      // We query the most recent done session BEFORE this insert to decide:
-      //   priorDate === today     → keep streak (multi-saves same day)
-      //   priorDate === yesterday → streak + 1
-      //   otherwise               → reset streak to 1
+      // 4) Profile: week_done + streak — only count the FIRST workout of the day
       const todayYMD = ymd(new Date());
       const yest = new Date(); yest.setDate(yest.getDate() - 1);
       const yestYMD = ymd(yest);
-      const priorDate = priorLastTrained; // captured before insert
+      const priorDate = priorLastTrained;
+      const isFirstToday = priorDate !== todayYMD;
+      console.log('[training save] priorLastTrained:', priorDate, 'today:', todayYMD, 'isFirstToday:', isFirstToday);
+
       let nextStreak = Number(data.streak) || 0;
       if (priorDate === todayYMD) {
-        if (nextStreak === 0) nextStreak = 1;
+        // already trained today → keep streak as-is, do not bump
       } else if (priorDate === yestYMD) {
         nextStreak = nextStreak + 1;
       } else {
         nextStreak = 1;
       }
-      await window.gainz.profile.update(user.id, {
-        week_done: (Number(data.weekDone) || 0) + 1,
-        streak: nextStreak,
-      });
+
+      const profilePatch = { streak: nextStreak };
+      if (isFirstToday) {
+        profilePatch.week_done = (Number(data.weekDone) || 0) + 1;
+      }
+      console.log('[training save] profile patch', profilePatch);
+      await window.gainz.profile.update(user.id, profilePatch);
 
       // 5) Recompute muscle_status for the current week from real sessions.
       const weekStart = new Date(monday);
@@ -180,16 +181,15 @@ function ScreenTraining({ data, setData, user, reload }) {
       }));
 
       // 6) Leaderboard: increment by THIS session's contribution.
-      //    score += sessionSets, workouts += 1
-      //    (don't recompute from week — atomic-ish increment is simpler
-      //    and matches the user's mental model.)
+      //    score += sessionSets, workouts += 1 (via upsert).
+      const sessionSets = trainedMuscles.reduce((a, m) => a + Number(m.sets), 0);
+      const weekStartISO = ymd(weekStart);
+      console.log('[training save] leaderboard call', { userId: user.id, weekStartISO, sessionSets });
       try {
-        const sessionSets = trainedMuscles.reduce((a, m) => a + Number(m.sets), 0);
-        const weekStartISO = ymd(weekStart);
-        await window.gainz.leaderboard.addSessionContribution(user.id, weekStartISO, sessionSets);
+        const result = await window.gainz.leaderboard.addSessionContribution(user.id, weekStartISO, sessionSets);
+        console.log('[training save] leaderboard write success', result);
       } catch (e) {
-        console.error('leaderboard write failed', e);
-        // Surface alongside save success so user knows leaderboard didn't update.
+        console.error('[training save] leaderboard write FAILED', e);
         setError(`Leaderboard nicht aktualisiert: ${e?.message || e}`);
       }
 
