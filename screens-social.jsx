@@ -3,6 +3,7 @@
 function ScreenLeaderboard({ data, user }) {
   const [tab, setTab] = React.useState('week');
   const [rows, setRows] = React.useState(null);
+  const [champs, setChamps] = React.useState({});
 
   // Current week's Monday in local time as YYYY-MM-DD
   const weekStartISO = React.useMemo(() => {
@@ -31,6 +32,20 @@ function ScreenLeaderboard({ data, user }) {
     return () => { alive = false; };
   }, [weekStartISO]);
 
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await window.sb.from('weekly_champions').select('user_id, championships');
+        if (!alive) return;
+        const m = {};
+        (data || []).forEach(r => { m[r.user_id] = Number(r.championships) || 0; });
+        setChamps(m);
+      } catch (e) { console.error('[champions]', e); if (alive) setChamps({}); }
+    })();
+    return () => { alive = false; };
+  }, []);
+
   // Real ranked list: sort by score desc, assign ranks.
   const ranked = (rows || [])
     .map(r => ({
@@ -41,7 +56,7 @@ function ScreenLeaderboard({ data, user }) {
       isMe: r.user_id === user?.id,
     }))
     .sort((a, b) => b.score - a.score)
-    .map((r, i) => ({ ...r, rank: i + 1 }));
+    .map((r, i) => ({ ...r, rank: i + 1, championships: (champs && champs[r.user_id]) || 0 }));
 
   const me = ranked.find(r => r.isMe);
 
@@ -71,6 +86,7 @@ function ScreenLeaderboard({ data, user }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display:'flex', alignItems:'center', gap: 6 }}>
           <span className={highlight ? 'grad-text' : ''} style={{ fontSize: 14, fontWeight: 600, color: highlight ? undefined : 'var(--txt)' }}>{u.name}</span>
+          {u.championships > 0 && <span style={{ fontSize: 9, fontWeight: 700, padding:'2px 6px', borderRadius: 6, background:'rgba(255, 200, 64, 0.16)', border:'1px solid rgba(255, 200, 64, 0.4)', color:'#ffd166', whiteSpace:'nowrap' }} title={`${u.championships}× Wochen-Champion`}>👑 {u.championships}</span>}
           {highlight && <span className="grad-text" style={{ fontSize: 9, fontWeight: 700, padding:'2px 6px', borderRadius:6, background:'rgba(var(--accent-rgb),0.16)', border:'1px solid rgba(var(--accent-rgb),0.28)', fontFamily:'Inter, sans-serif', letterSpacing: 1 }}>DU</span>}
         </div>
       </div>
