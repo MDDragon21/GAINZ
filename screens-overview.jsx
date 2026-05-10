@@ -68,14 +68,6 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
       <ScreenHeader
         title={<>Hallo, <span className="grad-text">{name}</span>.</>}
         sub={new Date().toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long' })}
-        right={<div style={{
-          width: 38, height: 38, borderRadius: 12,
-          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--line)',
-          display:'flex', alignItems:'center', justifyContent:'center', position: 'relative'
-        }}>
-          <Icon.bell size={18} color="var(--txt-2)"/>
-          <span style={{ position:'absolute', top:8, right:9, width:7, height:7, borderRadius:7, background:'var(--green)', boxShadow:'0 0 8px var(--green)' }}/>
-        </div>}
       />
 
       {/* ONBOARDING — set display name */}
@@ -165,8 +157,60 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
               <Card padding={16} gold={streakActive} style={{
                 position:'relative', overflow:'hidden',
               }}>
-                <div style={{ position:'absolute', right:-10, top:-12, opacity: streakActive ? 0.10 : 0.18, animation:'flameFlicker 2.4s ease-in-out infinite' }}>
-                  <Icon.flame size={86} color={flameColor}/>
+                {/* Premium decorative flame — sits inside the card, top-right.
+                    Warm gold→orange→red gradient, soft outer glow, animated. */}
+                <div aria-hidden="true" style={{
+                  position:'absolute', right: 10, top: 10,
+                  width: 56, height: 72,
+                  pointerEvents:'none',
+                  filter: streakActive
+                    ? 'drop-shadow(0 0 14px rgba(255,140,0,0.45)) drop-shadow(0 0 6px rgba(255,69,0,0.30))'
+                    : 'drop-shadow(0 0 8px rgba(139,26,26,0.35))',
+                  opacity: streakActive ? 0.95 : 0.55,
+                  animation: 'flameFlicker 2.4s ease-in-out infinite',
+                }}>
+                  <svg viewBox="0 0 56 72" width="56" height="72" style={{ display:'block' }}>
+                    <defs>
+                      <linearGradient id="flame-grad-active" x1="50%" y1="100%" x2="50%" y2="0%">
+                        <stop offset="0%"  stopColor="#FF4500"/>
+                        <stop offset="55%" stopColor="#FF8C00"/>
+                        <stop offset="100%" stopColor="#C9A84C"/>
+                      </linearGradient>
+                      <linearGradient id="flame-grad-inner" x1="50%" y1="100%" x2="50%" y2="0%">
+                        <stop offset="0%"  stopColor="rgba(255,200,80,0.35)"/>
+                        <stop offset="60%" stopColor="rgba(255,235,150,0.85)"/>
+                        <stop offset="100%" stopColor="rgba(255,255,220,0.95)"/>
+                      </linearGradient>
+                      <linearGradient id="flame-grad-dormant" x1="50%" y1="100%" x2="50%" y2="0%">
+                        <stop offset="0%"  stopColor="#3a0a0a"/>
+                        <stop offset="100%" stopColor="#8B1A1A"/>
+                      </linearGradient>
+                    </defs>
+                    {/* Outer flame body */}
+                    <path
+                      d="M28 4
+                         C 22 16, 12 22, 16 36
+                         C 8 32, 8 46, 18 54
+                         C 12 50, 14 64, 28 68
+                         C 42 64, 44 50, 38 54
+                         C 48 46, 48 32, 40 36
+                         C 44 22, 34 16, 28 4 Z"
+                      fill={streakActive ? 'url(#flame-grad-active)' : 'url(#flame-grad-dormant)'}
+                    />
+                    {/* Inner core — only on active state */}
+                    {streakActive && (
+                      <path
+                        d="M28 22
+                           C 25 30, 20 34, 22 44
+                           C 18 42, 19 50, 24 54
+                           C 22 52, 24 60, 28 62
+                           C 32 60, 34 52, 32 54
+                           C 37 50, 38 42, 34 44
+                           C 36 34, 31 30, 28 22 Z"
+                        fill="url(#flame-grad-inner)"
+                      />
+                    )}
+                  </svg>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:6, color: flameColor, fontSize:11, fontWeight:600, letterSpacing:1.4, textTransform:'uppercase', fontFamily:'Inter, sans-serif' }}>
                   <Icon.flame size={14} color={flameColor} style={{ animation:'flameFlicker 1.6s ease-in-out infinite' }}/>
@@ -358,7 +402,6 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
                 <div style={{ fontSize: 13, color: 'var(--txt)', fontWeight: 600 }}>Halte deinen {streak}-Tage-Streak.</div>
                 <div style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 2 }}>Heute trainieren um die Serie zu sichern.</div>
               </div>
-              <Icon.chevronRight size={16} color="var(--txt-2)"/>
             </div>
           </Card>
         </Section>
