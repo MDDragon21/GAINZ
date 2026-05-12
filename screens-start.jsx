@@ -244,191 +244,150 @@ function ScreenStart({ data, setData, onStart }) {
 
 // ─── GUIDED WORKOUT FULLSCREEN OVERLAY ──────────────────────
 function GuidedWorkout({ session, onExit }) {
-  const [phase, setPhase] = React.useState('work'); // 'work' | 'rest'
+  const MUSCLE_LABELS = {
+    brust:'BRUST', ruecken:'RÜCKEN', schultern:'SCHULTERN',
+    bizeps:'BIZEPS', trizeps:'TRIZEPS', bauch:'BAUCH', beine:'BEINE'
+  };
+
+  // Build flat set list in the EXACT order the user selected the muscle groups.
+  // Example: selected=['schultern','trizeps'], setsBy={schultern:6,trizeps:8}
+  //   -> 14 sets: Schultern 1..6, then Trizeps 1..8.
+  const sets = React.useMemo(() => {
+    const out = [];
+    (session && session.selected ? session.selected : []).forEach(m => {
+      const n = Number(session && session.setsBy ? session.setsBy[m] : 0) || 0;
+      for (let i = 0; i < n; i++) {
+        out.push({ muscle: m, setNum: i + 1, totalForMuscle: n });
+      }
+    });
+    return out;
+  }, [session]);
+
+  const totalSets = sets.length;
+  const workSec = Math.max(5, Math.min(600, Number(session && session.work) || 40));
+  const restSec = Math.max(5, Math.min(600, Number(session && session.rest) || 20));
+
+  const [setIdx, setSetIdx] = React.useState(0);
+  const [phase, setPhase] = React.useState('work'); // 'work' | 'rest' | 'done'
+  const [tick, setTick] = React.useState(workSec);
   const [paused, setPaused] = React.useState(false);
-  const [tick, setTick] = React.useState(40);
-  const [setIdx, setSetIdx] = React.useState(3);
-  const totalSets = 8;
-  const exercise = 'Pull-Ups';
-  const muscle = 'Rücken';
 
-  // ── Audio (Web Audio API, no external files) ─────────────────────────────
-  const [muted, setMuted] = React.useState(false);
-  const audioCtxRef = React.useRef(null);
-  const ensureCtx = React.useCallback(() => {
-    if (muted) return null;
-    if (!audioCtxRef.current) {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return null;
-      try { audioCtxRef.current = new Ctx(); } catch (e) { return null; }
-    }
-    const ctx = audioCtxRef.current;
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-    return ctx;
-  }, [muted]);
-  const playTone = React.useCallback((freq, dur = 0.15, vol = 0.25) => {
-    const ctx = ensureCtx();
-    if (!ctx) return;
-    const t0 = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, t0);
-    gain.gain.setValueAtTime(0, t0);
-    gain.gain.linearRampToValueAtTime(vol, t0 + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + dur + 0.02);
-  }, [ensureCtx]);
-  const playBeep      = React.useCallback(() => playTone(880, 0.15), [playTone]);
-  const playStartTone = React.useCallback(() => playTone(660, 0.30), [playTone]);
-  const playRestTone  = React.useCallback(() => playTone(440, 0.30), [playTone]);
-  const playFanfare   = React.useCallback(() => {
-    [440, 660, 880].forEach((f, i) => setTimeout(() => playTone(f, 0.28, 0.30), i * 180));
-  }, [playTone]);
-
-  // Resume the AudioContext on the very first tap inside the overlay so
-  // browsers (especially iOS Safari) actually output sound.
-  React.useEffect(() => {
-    const unlock = () => { ensureCtx(); };
-    document.addEventListener('pointerdown', unlock, { once: true });
-    return () => document.removeEventListener('pointerdown', unlock);
-  }, [ensureCtx]);
-
-  // Beep on the last 3 seconds of either phase.
-  React.useEffect(() => {
-    if (paused) return;
-    if (tick === 3 || tick === 2 || tick === 1) playBeep();
-  }, [tick, paused, playBeep]);
-
-  // Phase-transition tones (also fires on initial mount → start tone).
-  const lastPhaseRef = React.useRef(null);
-  React.useEffect(() => {
-    if (lastPhaseRef.current === phase) return;
-    if (phase === 'work') playStartTone();
-    else                   playRestTone();
-    lastPhaseRef.current = phase;
-  }, [phase, playStartTone, playRestTone]);
-
-  React.useEffect(() => {
-    if (paused) return;
-    const id = setInterval(() => {
-      setTick(t => {
-        if (t <= 1) {
-          setPhase(p => p === 'work' ? 'rest' : 'work');
-          return phase === 'work' ? (session?.rest || 60) : (session?.work || 40);
+  const advance = React.useCallback(() => {
+    setPhase(p => {
+      if (p === 'work') {
+        if (setIdx >= totalSets - 1) {
+          return 'done';
         }
-        return t - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [paused, phase, session]);
+        setTick(restSec);
+        return 'rest';
+      }
+      if (p === 'rest') {
+        setSetIdx(i => i + 1);
+        setTick(workSec);
+        return 'work';
+      }
+      return p;
+    });
+  }, [setIdx, totalSets, workSec, restSec]);
 
-  const totalT = phase === 'work' ? (session?.work || 40) : (session?.rest || 60);
-  const pct = 1 - tick / totalT;
-  const C = 2 * Math.PI * 130;
-  const accent = 'var(--accent-primary)';
+  // Countdown ticker
+  React.useEffect(() => {
+    if (phase === 'done' || paused) return;
+    if (tick <= 0) { advance(); return; }
+    const id = setTimeout(() => setTick(t => t - 1), 1000);
+    return () => clearTimeout(id);
+  }, [tick, phase, paused, advance]);
 
-  const fmt = (s) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  // After completion, auto-close (triggers handleWorkoutExit -> saves session+muscles to Supabase)
+  React.useEffect(() => {
+    if (phase === 'done') {
+      const id = setTimeout(() => { if (onExit) onExit(); }, 1800);
+      return () => clearTimeout(id);
+    }
+  }, [phase, onExit]);
+
+  // ---------- Inline styles ----------
+  const overlay = {
+    position:'fixed', inset:0, zIndex:999999,
+    background:'rgba(0,0,0,0.94)',
+    display:'flex', alignItems:'center', justifyContent:'center',
+    padding:24,
+    paddingTop:'calc(24px + env(safe-area-inset-top, 0px))',
+    paddingBottom:'calc(24px + env(safe-area-inset-bottom, 0px))'
+  };
+  const card = {
+    width:'100%', maxWidth:520,
+    background:'var(--card)', border:'1px solid var(--line)', borderRadius:20,
+    padding:'32px 28px', textAlign:'center', color:'var(--txt)',
+    boxShadow:'0 24px 56px rgba(0,0,0,0.5)'
+  };
+  const primaryBtn = {
+    width:'100%', padding:'16px 18px',
+    background:'var(--accent)', border:'none', borderRadius:14,
+    color:'#fff', fontSize:16, fontWeight:700, cursor:'pointer',
+    fontFamily:'inherit', letterSpacing:0.5
+  };
+  const ghostBtn = {
+    flex:1, padding:'10px 14px',
+    background:'transparent', border:'1px solid var(--line)', borderRadius:10,
+    color:'var(--txt-2)', fontSize:13, fontWeight:600, cursor:'pointer',
+    fontFamily:'inherit'
+  };
+
+  // ---------- Empty state ----------
+  if (totalSets === 0) {
+    return (
+      <div style={overlay}>
+        <div style={card}>
+          <div style={{ fontSize:18, fontWeight:700, marginBottom:14 }}>Keine Sätze konfiguriert.</div>
+          <button style={primaryBtn} onClick={onExit}>Schließen</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Completion screen ----------
+  if (phase === 'done') {
+    return (
+      <div style={overlay}>
+        <div style={card}>
+          <div style={{ fontSize:11, opacity:0.55, letterSpacing:2, marginBottom:8 }}>FERTIG</div>
+          <div style={{ fontSize:32, fontWeight:800, marginBottom:10, color:'var(--accent)' }}>Workout abgeschlossen</div>
+          <div style={{ fontSize:14, opacity:0.7 }}>{totalSets} Sets · {Math.round(Number(session && session.duration) || 0)} min</div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Active set screen ----------
+  const cur = sets[setIdx];
+  const muscleLabel = MUSCLE_LABELS[cur.muscle] || ((cur.muscle || '') + '').toUpperCase();
+  const isWork = phase === 'work';
 
   return (
-    <div style={{
-      position:'absolute', inset: 0, zIndex: 100,
-      background:'#020807', display:'flex', flexDirection:'column',
-      paddingTop: 56, // status bar
-    }}>
-      {/* corner controls */}
-      <div style={{ display:'flex', justifyContent:'space-between', padding:'12px 22px', alignItems:'center' }}>
-        <button onClick={onExit} style={{ background:'none', border:'none', color:'var(--txt-2)', fontSize: 12, fontWeight: 600, fontFamily:'Inter, sans-serif', cursor:'pointer', textTransform:'uppercase', letterSpacing: 1 }}>Abbrechen</button>
-        <div style={{ display:'flex', gap: 8, alignItems:'center' }}>
-          <button
-            onClick={() => {
-              setMuted(m => {
-                const next = !m;
-                if (next && audioCtxRef.current) { try { audioCtxRef.current.suspend(); } catch (e) {} }
-                if (!next && audioCtxRef.current) { try { audioCtxRef.current.resume();  } catch (e) {} }
-                return next;
-              });
-            }}
-            aria-label={muted ? 'Ton einschalten' : 'Ton ausschalten'}
-            style={{
-              width: 34, height: 34, borderRadius: 999,
-              background:'rgba(255,255,255,0.05)',
-              border:'1px solid var(--line)',
-              color: muted ? 'var(--txt-3)' : 'var(--txt)',
-              fontSize: 16, lineHeight: 1, cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center',
-            }}>{muted ? '🔇' : '🔊'}</button>
-          <button onClick={() => setPaused(p => !p)} style={{ display:'flex', alignItems:'center', gap: 6, background:'rgba(255,255,255,0.05)', border:'1px solid var(--line)', color:'var(--txt)', padding:'6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, fontFamily:'Inter, sans-serif', cursor:'pointer', textTransform:'uppercase', letterSpacing: 1 }}>
-            <Icon.pause size={11} color="var(--txt)"/> {paused ? 'Weiter' : 'Pause'}
-          </button>
-        </div>
-      </div>
+    <div style={overlay}>
+      <div style={card}>
+        <div style={{ fontSize:11, opacity:0.5, letterSpacing:2, marginBottom:6 }}>MUSKEL</div>
+        <div style={{ fontSize:38, fontWeight:800, marginBottom:20, lineHeight:1 }}>{muscleLabel}</div>
 
-      {/* main content */}
-      <div style={{ flex: 1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding: '0 24px' }}>
-        <div style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: 2.4, fontFamily:'Inter, sans-serif',
-          color: accent, padding: '6px 14px', borderRadius: 999,
-          background: phase === 'work' ? 'rgba(var(--accent-rgb),0.08)' : 'rgba(var(--accent-rgb),0.11)',
-          border: `1px solid ${phase === 'work' ? 'rgba(var(--accent-rgb),0.25)' : 'rgba(var(--accent-rgb),0.28)'}`,
-          textTransform:'uppercase',
-          boxShadow: phase === 'work' ? '0 0 18px rgba(var(--accent-rgb),0.25)' : '0 0 18px rgba(var(--accent-rgb),0.28)',
-          animation: paused ? 'none' : 'softPulse 1.6s ease-in-out infinite',
-          display:'flex', alignItems:'center', gap: 6,
-        }}>
-          {phase === 'work' ? 'Arbeiten' : 'Pause'}
-          <Icon.speaker size={11} color={accent} style={{ opacity: paused ? 0.3 : 1 }}/>
+        <div style={{ fontSize:18, fontWeight:600, marginBottom:4 }}>Set {cur.setNum} von {cur.totalForMuscle}</div>
+        <div style={{ fontSize:12, opacity:0.55, marginBottom:24 }}>{setIdx + 1} von {totalSets} Sets gesamt</div>
+
+        <div style={{ fontSize:13, fontWeight:700, letterSpacing:2, color: isWork ? 'var(--accent)' : 'var(--txt-2)', marginBottom:4 }}>
+          {paused ? 'PAUSIERT' : (isWork ? 'ARBEITEN' : 'PAUSE')}
+        </div>
+        <div style={{ fontSize:96, fontWeight:800, fontVariantNumeric:'tabular-nums', lineHeight:1, marginBottom:28 }}>
+          {tick}
         </div>
 
-        <div style={{ fontSize: 28, fontWeight: 700, marginTop: 22, letterSpacing:-0.5 }}>{exercise}</div>
-        <div style={{ fontSize: 13, color:'var(--txt-2)', marginTop: 4, fontFamily:'Inter, sans-serif', textTransform:'uppercase', letterSpacing: 1.4 }}>
-          Set {setIdx} von {totalSets} · {muscle}
-        </div>
+        <button style={primaryBtn} onClick={advance}>
+          {isWork ? 'Set geschafft' : 'Weiter'}
+        </button>
 
-        {/* circular timer */}
-        <div style={{ position:'relative', marginTop: 36 }}>
-          <svg width="290" height="290">
-            <circle cx="145" cy="145" r="130" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3"/>
-            <circle cx="145" cy="145" r="130" fill="none" stroke={accent} strokeWidth="4"
-              strokeDasharray={C} strokeDashoffset={C * (1 - pct)}
-              transform="rotate(-90 145 145)" strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 1s linear', filter: `drop-shadow(0 0 12px ${accent}80)` }}/>
-          </svg>
-          <div style={{ position:'absolute', inset: 0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
-            <div className="ticker" style={{ fontSize: 76, fontWeight: 700, lineHeight: 1, color: '#fff', letterSpacing:-3 }}>{fmt(tick)}</div>
-            <div style={{ fontSize: 11, color:'var(--txt-3)', fontFamily:'Inter, sans-serif', letterSpacing:1.4, textTransform:'uppercase', marginTop: 6 }}>
-              von {fmt(totalT)}
-            </div>
-          </div>
+        <div style={{ display:'flex', gap:8, marginTop:14 }}>
+          <button style={ghostBtn} onClick={() => setPaused(p => !p)}>{paused ? 'Fortsetzen' : 'Pause'}</button>
+          <button style={ghostBtn} onClick={onExit}>Abbrechen</button>
         </div>
-
-        {/* set progress dots */}
-        <div style={{ display:'flex', gap: 5, marginTop: 32 }}>
-          {Array.from({ length: totalSets }).map((_,i) => (
-            <div key={i} style={{
-              width: i === setIdx-1 ? 26 : 7, height: 7, borderRadius: 7,
-              background: i < setIdx ? 'var(--grad)' : '#2a2a3a',
-              boxShadow: i === setIdx-1 ? '0 0 8px rgba(var(--accent-rgb),0.36)' : 'none',
-              transition:'all .3s'
-            }}/>
-          ))}
-        </div>
-      </div>
-
-      {/* bottom action */}
-      <div style={{ padding: '0 24px 36px' }}>
-        <CTA onClick={() => {
-          if (setIdx < totalSets) {
-            setSetIdx(s => s + 1);
-            setPhase('rest');
-            setTick(session?.rest || 60);
-          } else {
-            playFanfare();
-            setTimeout(() => onExit(), 800);
-          }
-        }} icon={<Icon.check size={18} color="#fff"/>}>Set geschafft</CTA>
       </div>
     </div>
   );
