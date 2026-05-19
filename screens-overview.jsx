@@ -21,42 +21,62 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
     trizeps: realSets7d.trizeps || 0,
     bauch: realSets7d.bauch || 0,
     beine: realSets7d.beine || 0,
-  };  // Period-specific actual sets fetched from Supabase when period > 7d.
-  // 7d uses the data prop's pre-fetched last-7-days data.
+ 
+  // Heatmap data: fetch real sets from Supabase for the selected period.
+  // 7d uses the CURRENT CALENDAR WEEK (Monday 00:00 -> Sunday 23:59).
+  // mo/qtr/yr use rolling last-N-days windows.
+  // Same Monday convention as leaderboard_weekly.week_start.
   const [periodSets, setPeriodSets] = React.useState(null);
+  const [weekSets,   setWeekSets]   = React.useState(null);
   React.useEffect(() => {
-    if (period === '7d') { setPeriodSets(null); return; }
     let alive = true;
+    const mondayRange = () => {
+      const now = new Date();
+      const day = now.getDay(); // 0=Sun, 1=Mon...
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((day + 6) % 7));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      return { fromISO: monday.toISOString(), toISO: sunday.toISOString() };
+    };
+    const periodRange = () => {
+      if (period === '7d') return mondayRange();
+      const days = period === 'mo' ? 30 : period === 'qtr' ? 91 : period === 'yr' ? 365 : 7;
+      const from = new Date();
+      from.setDate(from.getDate() - days);
+      from.setHours(0, 0, 0, 0);
+      return { fromISO: from.toISOString(), toISO: null };
+    };
+    const fetchSums = async (range) => {
+      let q = window.sb.from('workout_sessions').select('id').eq('user_id', user?.id).eq('status', 'done').gte('started_at', range.fromISO);
+      if (range.toISO) q = q.lte('started_at', range.toISO);
+      const { data: sessions, error: e1 } = await q;
+      if (e1) throw e1;
+      const ids = (sessions || []).map(s => s.id);
+      const sums = { brust:0, ruecken:0, schultern:0, bizeps:0, trizeps:0, bauch:0, beine:0 };
+      if (ids.length) {
+        const { data: rows, error: e2 } = await window.sb.from('workout_session_muscles').select('muscle, sets').in('session_id', ids);
+        if (e2) throw e2;
+        (rows || []).forEach(r => { if (sums[r.muscle] !== undefined) sums[r.muscle] += Number(r.sets || 0); });
+      }
+      return sums;
+    };
     (async () => {
       try {
-        const days = period === 'mo' ? 30 : period === 'qtr' ? 91 : period === 'yr' ? 365 : 7;
-        const from = new Date();
-        from.setDate(from.getDate() - days);
-        const fromISO = from.toISOString().slice(0, 10);
-        const { data: sessions, error: e1 } = await window.sb
-          .from('workout_sessions')
-          .select('id')
-          .eq('user_id', user?.id)
-          .eq('status', 'done')
-          .gte('started_at', fromISO);
-        if (e1) throw e1;
-        const ids = (sessions || []).map(s => s.id);
-        const sums = { brust:0, ruecken:0, schultern:0, bizeps:0, trizeps:0, bauch:0, beine:0 };
-        if (ids.length) {
-          const { data: rows, error: e2 } = await window.sb
-            .from('workout_session_muscles')
-            .select('muscle, sets')
-            .in('session_id', ids);
-          if (e2) throw e2;
-          (rows || []).forEach(r => {
-            const m = r.muscle;
-            if (sums[m] !== undefined) sums[m] += Number(r.sets || 0);
-          });
+        const periodSums = await fetchSums(periodRange());
+        if (!alive) return;
+        setPeriodSets(periodSums);
+        if (period === '7d') {
+          setWeekSets(periodSums);
+        } else {
+          const weekSums = await fetchSums(mondayRange());
+          if (alive) setWeekSets(weekSums);
         }
-        if (alive) setPeriodSets(sums);
       } catch (e) {
-        console.error('[heatmap] period fetch failed', e);
-        if (alive) setPeriodSets({});
+        console.error('[heatmap] fetch failed', e);
+        if (alive) { setPeriodSets({}); setWeekSets({}); }
       }
     })();
     return () => { alive = false; };
@@ -64,7 +84,7 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
 
 
   const sessionsCount = data.sessionsCount || 0;
-  const totalSetsLogged = Object.values(setsLast7d).reduce((a,b) => a+b, 0);
+  const totalSetsLogged = Object.values(weekSets || setsLast7d).reduce((a,b) => a+b, 0);
   const hasMuscleData = totalSetsLogged > 0;
 
   const PERIODS = [
@@ -74,13 +94,10 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
     { id: 'yr',   label: 'Jahr',    mult: 52 },
   ];
   const periodCfg = PERIODS.find(p => p.id === period);
-  // Per-period actual sets:
-  //   '7d'             -> data prop's last-7-days fetch
-  //   'mo' | 'qtr' | 'yr' -> real Supabase fetch in useEffect above
-  // Fallback while loading: scale 7d sets by mult so the UI is not blank.
-  const actualByPeriod = period === '7d'
-    ? setsLast7d
-    : (periodSets || Object.fromEntries(Object.entries(setsLast7d).map(([k,v]) => [k, Math.round(v * periodCfg.mult)])));
+    // Actual sets in the selected period (fetched in useEffect above).
+  // Loading: zeros (grey muscles) for a brief moment.
+  const ZERO_SETS = { brust:0, ruecken:0, schultern:0, bizeps:0, trizeps:0, bauch:0, beine:0 };
+  const actualByPeriod = periodSets || ZERO_SETS;
 
   const goalByPeriod   = Object.fromEntries(Object.entries(weeklyGoals).map(([k,v]) => [k, v * periodCfg.mult]));
 
