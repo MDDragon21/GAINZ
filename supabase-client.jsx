@@ -359,10 +359,15 @@ const gainz = {
 
   quotes: {
     async random() {
-      const { data, error } = await sb.from('daily_quotes').select('*').eq('active', true);
+      const { data, error } = await sb.from('daily_quotes').select('*').eq('active', true).order('id', { ascending: true });
       if (error) throw error;
       if (!data?.length) return null;
-      return data[Math.floor(Math.random() * data.length)];
+      // Deterministic pick by day-of-year: same quote all day, rotates through all active quotes.
+      // dayOfYear ranges 1..366. Using data.length keeps things correct regardless of how many quotes are active.
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 0);
+      const dayOfYear = Math.floor((now - startOfYear) / (1000 * 60 * 60 * 24));
+      return data[dayOfYear % data.length];
     },
   },
 };
