@@ -21,7 +21,8 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
     trizeps: realSets7d.trizeps || 0,
     bauch: realSets7d.bauch || 0,
     beine: realSets7d.beine || 0,
- 
+  };
+
   // Heatmap data: fetch real sets from Supabase for the selected period.
   // 7d uses the CURRENT CALENDAR WEEK (Monday 00:00 -> Sunday 23:59).
   // mo/qtr/yr use rolling last-N-days windows.
