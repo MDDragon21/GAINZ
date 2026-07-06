@@ -29,7 +29,7 @@ jobs:
           URL="${{ matrix.project.url }}"
           KEY="${{ matrix.project.key }}"
           echo "== ${{ matrix.project.name }} :: $URL =="
-          h=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$URL/auth/v1/health")
+          h=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$URL/auth/v1/health" -H "apikey: $KEY")
           echo "auth/health -> $h"
           r=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
                 "$URL/rest/v1/keepalive_ping?select=1&limit=1" \
