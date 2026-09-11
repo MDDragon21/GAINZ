@@ -135,6 +135,153 @@ function ScreenLeaderboard({ data, user }) {
   );
 }
 
+// ─── PROTEIN-TAGESZIEL (additiv) ───────────────────────────────────────────
+// Eigener Speicherpfad direkt auf profiles.protein_goal_g — greift NICHT in
+// onSaveGoals / setData ein, damit Wochenziel und Satz-Ziele unveraendert
+// funktionieren. Rendert nichts, solange die Spalte fehlt.
+function ProteinGoalCard({ user, data, reload }) {
+  const saved = Number(data?.proteinGoal ?? 120) || 120;
+  const [draft, setDraft] = React.useState(saved);
+  const [busy, setBusy]   = React.useState(false);
+  const [err, setErr]     = React.useState(null);
+  const [missing, setMissing] = React.useState(false);
+  const [toastUntil, setToastUntil] = React.useState(0);
+  const [, tick] = React.useReducer(x => x + 1, 0);
+  const toastVisible = Date.now() < toastUntil;
+  React.useEffect(() => {
+    if (!toastUntil) return;
+    const id = setTimeout(tick, Math.max(0, toastUntil - Date.now()) + 50);
+    return () => clearTimeout(id);
+  }, [toastUntil]);
+  React.useEffect(() => { setDraft(saved); }, [saved]);
+
+  if (missing) return null;
+
+  const dirty = draft !== saved;
+  const clamp = (v) => Math.max(30, Math.min(400, v));
+
+  const save = async () => {
+    if (!user || busy) return;
+    setBusy(true); setErr(null);
+    const v = clamp(parseInt(draft, 10) || 120);
+    setDraft(v);
+    try {
+      const { error } = await window.sb.from('profiles')
+        .update({ protein_goal_g: v }).eq('user_id', user.id);
+      if (error) {
+        // Spalte fehlt (Migration noch nicht gelaufen) → Karte ausblenden
+        if (error.code === '42703' || error.code === 'PGRST204' || /protein_goal_g/.test(error.message || '')) {
+          console.warn('[intake] Spalte profiles.protein_goal_g fehlt — Migration 001_daily_intake.sql ausfuehren.');
+          setMissing(true);
+          return;
+        }
+        throw error;
+      }
+      await reload?.();
+      setToastUntil(Date.now() + 2000);
+    } catch (e) {
+      setErr(e?.message || 'Speichern fehlgeschlagen.');
+    } finally { setBusy(false); }
+  };
+
+  const avg = Number(data?.proteinAvg30 ?? 0);
+  const pct = avg > 0 ? Math.round(avg / draft * 100) : null;
+
+  return (
+    <Section title="Intake-Ziel">
+      <Card padding={18}>
+        <div style={{ fontSize: 13, color:'var(--txt)', fontWeight: 600, marginBottom: 6 }}>
+          Wie viel Protein pro Tag?
+        </div>
+        <div style={{ fontSize: 11, color:'var(--txt-3)', marginBottom: 12, fontFamily:'Inter, sans-serif', letterSpacing: 0.5 }}>
+          100 % Baseline für den Intake-Verlauf
+        </div>
+
+        <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+          <button onClick={() => setDraft(v => clamp((parseInt(v, 10) || 0) - 5))} style={stepBtn}>−</button>
+          <input
+            type="number" inputMode="numeric" pattern="[0-9]*"
+            min={30} max={400} step={5}
+            value={Number.isFinite(draft) && draft > 0 ? draft : ''}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              setDraft(Number.isFinite(n) ? n : 0);
+            }}
+            style={{
+              flex: 1, padding:'12px 14px', textAlign:'center',
+              background:'#1a1a2e', border:'1px solid var(--line)', borderRadius: 10,
+              color:'#FFFFFF', WebkitTextFillColor:'#FFFFFF',
+              fontSize: 22, fontWeight: 700, fontFamily:'inherit',
+              outline:'none', caretColor:'var(--green)',
+              WebkitAppearance:'none', MozAppearance:'textfield',
+              boxSizing:'border-box',
+            }}/>
+          <button onClick={() => setDraft(v => clamp((parseInt(v, 10) || 0) + 5))} style={stepBtn}>+</button>
+          <span style={{ fontSize: 12, color:'var(--txt-2)', minWidth: 44 }}>g / Tag</span>
+        </div>
+
+        <div style={{ display:'flex', gap: 8, marginTop: 12 }}>
+          {[100, 120, 150].map(g => {
+            const on = draft === g;
+            return (
+              <button key={g} onClick={() => setDraft(g)} style={{
+                flex: 1, height: 44, borderRadius: 999, cursor:'pointer', fontFamily:'inherit',
+                fontSize: 12, fontWeight: 600,
+                background: on ? 'rgba(var(--accent-rgb),0.20)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${on ? 'rgba(var(--accent-rgb),0.50)' : 'var(--line)'}`,
+                color: on ? '#00A878' : 'var(--txt-2)',
+              }}>{g} g</button>
+            );
+          })}
+        </div>
+
+        {pct != null && (
+          <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background:'rgba(255,255,255,0.02)', border:'1px solid var(--line)' }}>
+            <div className="label-cap" style={{ marginBottom: 10 }}>Wirkt sofort überall</div>
+            <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+              <div style={{ flex: 1, height: 8, borderRadius: 8, background:'rgba(255,255,255,0.05)', border:'1px solid var(--line)', overflow:'hidden' }}>
+                <div style={{
+                  height:'100%', width: `${Math.min(100, pct)}%`, borderRadius: 8,
+                  background: pct >= 100 ? 'var(--grad)' : 'linear-gradient(90deg, var(--gold), rgba(var(--gold-rgb),0.55))',
+                }}/>
+              </div>
+              <div className="ticker" style={{ fontSize: 13, fontWeight: 700, color: pct >= 100 ? '#00A878' : 'var(--gold)', minWidth: 44, textAlign:'right' }}>{pct} %</div>
+            </div>
+            <div style={{ fontSize: 12, color:'var(--txt-2)', lineHeight: 1.45, marginTop: 10 }}>
+              Dein Schnitt der letzten 30 Tage liegt bei {avg} g.
+            </div>
+          </div>
+        )}
+
+        {err && (
+          <div style={{ marginTop: 12, padding:'10px 12px', background:'rgba(239,68,68,0.10)', border:'1px solid rgba(239,68,68,0.30)', borderRadius: 10, color:'#EF4444', fontSize: 12 }}>{err}</div>
+        )}
+
+        <div style={{ position:'relative', marginTop: 12 }}>
+          <button onClick={save} disabled={!dirty || busy} style={{
+            width:'100%', padding:'14px 16px',
+            background: dirty ? 'var(--grad)' : 'rgba(var(--accent-rgb),0.25)',
+            border:'none', borderRadius: 14,
+            color:'#fff', fontSize: 14, fontWeight: 700,
+            cursor: dirty && !busy ? 'pointer' : 'not-allowed',
+            fontFamily:'inherit',
+            boxShadow: dirty ? '0 8px 22px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.20)' : 'none',
+          }}>{busy ? '…' : 'Speichern'}</button>
+          {toastVisible && (
+            <div style={{
+              position:'absolute', right: 0, bottom:'calc(100% + 8px)',
+              padding:'8px 14px', borderRadius: 999,
+              background:'rgba(34,197,94,0.18)', border:'1px solid rgba(34,197,94,0.45)',
+              color:'#22C55E', fontSize: 12, fontWeight: 700, letterSpacing: 1,
+              whiteSpace:'nowrap',
+            }}>Gespeichert ✓</div>
+          )}
+        </div>
+      </Card>
+    </Section>
+  );
+}
+
 function ScreenProfile({ data, setData, user, reload }) {
   const accountEmail = user?.email || '—';
   const handleLogout = async () => {
@@ -517,6 +664,9 @@ function ScreenProfile({ data, setData, user, reload }) {
           )}
         </div>
       </Section>
+
+      {/* INTAKE-ZIEL — Protein pro Tag (additiv) */}
+      <ProteinGoalCard user={user} data={data} reload={reload}/>
 
       {/* TOAST after reset */}
       {resetToastVisible && (
