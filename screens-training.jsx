@@ -14,10 +14,25 @@ const ymd = (d) => {
 // "Speichern"-Button des Trainings. So entsteht an Ruhetagen keine leere
 // Trainingssession, nur weil Kreatin abgehakt wurde.
 // Rendert nichts, solange die Tabelle fehlt.
-function IntakeDay({ user, goal, monday, dayIndex }) {
+function IntakeDay({ user, goal, monday, dayIndex, onSaved }) {
   const dayDate = React.useMemo(() => {
     const d = new Date(monday); d.setDate(d.getDate() + dayIndex); return d;
   }, [monday, dayIndex]);
+
+  // Zeigt, FUER WELCHEN TAG gerade abgehakt wird. Ohne das liest sich der
+  // Block immer wie "heute", auch wenn oben ein anderer Tag gewaehlt ist —
+  // und Nachtragen wirkt unmoeglich, obwohl es geht.
+  const isToday = React.useMemo(() => {
+    const n = new Date();
+    return dayDate.getFullYear() === n.getFullYear()
+        && dayDate.getMonth() === n.getMonth()
+        && dayDate.getDate() === n.getDate();
+  }, [dayDate]);
+  const dayLabel = isToday
+    ? 'heute'
+    : `${['Mo','Di','Mi','Do','Fr','Sa','So'][(dayDate.getDay() + 6) % 7]}, `
+      + `${dayDate.getDate()}. `
+      + `${['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][dayDate.getMonth()]}`;
 
   const [row, setRow]   = React.useState(null);
   const [busy, setBusy] = React.useState(false);
@@ -62,6 +77,7 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
       if (saved) {
         setErr(null);
         setToastUntil(Date.now() + 1400);
+        onSaved?.();          // Wochenraster neu einfaerben
       } else if (window.gainz?.intake?.available) {
         // set() gab null zurueck, obwohl die Tabelle da ist → echter Fehler
         setErr('Konnte nicht gespeichert werden. Nochmal antippen.');
@@ -75,7 +91,7 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
       setBusy(false);
       if (pendingRef.current) flush();   // Nachzuegler schreiben
     }
-  }, [user?.id, dayDate]);
+  }, [user?.id, dayDate, onSaved]);
 
   // patch anwenden: sofort im UI, gespeichert entweder direkt (Toggles)
   // oder nach kurzer Ruhe (Tippen im Grammfeld).
@@ -146,7 +162,7 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
   return (
     <Section style={{ position:'relative' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10 }}>
-        <div className="label-cap">Intake</div>
+        <div className="label-cap">Intake · {dayLabel}</div>
         <div style={{ fontSize: 10, color:'var(--txt-3)', letterSpacing: 0.5 }}>speichert sofort</div>
       </div>
       <Card padding={16}>
@@ -157,7 +173,7 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 600 }}>Kreatin</div>
               <div style={{ fontSize: 11, color:'var(--txt-2)', marginTop: 2 }}>
-                {row.creatine ? 'heute genommen' : 'heute offen'}
+                {dayLabel} · {row.creatine ? 'genommen' : 'offen'}
               </div>
             </div>
             <Check on={!!row.creatine} onClick={() => save({ creatine: !row.creatine })}/>
@@ -170,7 +186,7 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 600 }}>Supplements</div>
               <div style={{ fontSize: 11, color:'var(--txt-2)', marginTop: 2 }}>
-                {row.supplements ? 'heute genommen' : 'heute offen'}
+                {dayLabel} · {row.supplements ? 'genommen' : 'offen'}
               </div>
             </div>
             <Check on={!!row.supplements} onClick={() => save({ supplements: !row.supplements })}/>
@@ -485,6 +501,29 @@ function ScreenTraining({ data, setData, user, reload }) {
   // Tab state — 'week' = log + plan (existing), 'history' = Verlauf
   const [tab, setTab] = React.useState('week');
 
+  // Intake-Status der laufenden Woche, fuer die Marker im Wochenraster.
+  // Zeigt auf einen Blick, welche Tage noch Luecken haben — sonst muesste
+  // man jeden Tag einzeln aufklappen, um das zu sehen.
+  const [weekIntake, setWeekIntake] = React.useState({});
+  const [intakeVersion, setIntakeVersion] = React.useState(0);
+  const onIntakeSaved = React.useCallback(() => setIntakeVersion(v => v + 1), []);
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!user?.id || !window.gainz?.intake?.available) { if (alive) setWeekIntake({}); return; }
+      const end = new Date(monday); end.setDate(end.getDate() + 6);
+      const rows = await window.gainz.intake.range(user.id, monday, end);
+      if (!alive) return;
+      const map = {};
+      (rows || []).forEach(r => {
+        const d = new Date(r.day + 'T12:00:00');
+        map[(d.getDay() + 6) % 7] = r;
+      });
+      setWeekIntake(map);
+    })();
+    return () => { alive = false; };
+  }, [user?.id, monday, intakeVersion]);
+
   const onFinish = async () => {
     if (saving || !user) return;
     setError(null);
@@ -661,7 +700,7 @@ function ScreenTraining({ data, setData, user, reload }) {
                 background: isOpen ? 'rgba(var(--accent-rgb),0.09)' : isToday ? 'rgba(var(--accent-rgb),0.05)' : 'var(--card)',
                 border: `1px solid ${isOpen || isToday ? 'rgba(var(--accent-rgb),0.25)' : 'var(--line)'}`,
                 borderRadius: 12, padding: '10px 4px',
-                display:'flex', flexDirection:'column', alignItems:'center', gap: 6,
+                display:'flex', flexDirection:'column', alignItems:'center', gap: 5,
                 cursor:'pointer',
                 boxShadow: isOpen ? '0 0 18px rgba(var(--accent-rgb),0.20)' : 'none',
                 transition:'all .2s'
@@ -673,10 +712,33 @@ function ScreenTraining({ data, setData, user, reload }) {
                   boxShadow: d.state === 'done' || d.state === 'today' ? '0 0 8px rgba(var(--accent-rgb),0.35)' : 'none',
                   animation: d.state === 'today' ? 'softPulse 1.6s ease-in-out infinite' : 'none',
                 }}/>
+                {/* Intake-Marker: voll = alle drei da, halb = teilweise,
+                    leer = nichts eingetragen. Nur wenn die Tabelle existiert. */}
+                {window.gainz?.intake?.available && (() => {
+                  const r = weekIntake[i];
+                  const n = r ? (r.creatine ? 1 : 0) + (r.supplements ? 1 : 0) + (Number(r.protein_g) > 0 ? 1 : 0) : 0;
+                  const col = n === 3 ? 'var(--accent)' : n > 0 ? 'var(--gold)' : 'rgba(255,255,255,0.10)';
+                  return (
+                    <div title={`Intake ${n}/3`} style={{
+                      width: 16, height: 3, borderRadius: 3, background: col,
+                      boxShadow: n > 0 ? `0 0 6px ${n === 3 ? 'rgba(var(--accent-rgb),0.45)' : 'rgba(var(--gold-rgb),0.45)'}` : 'none',
+                    }}/>
+                  );
+                })()}
               </div>
             );
           })}
         </div>
+        {window.gainz?.intake?.available && (
+          <div style={{ display:'flex', gap: 14, justifyContent:'center', marginTop: 10, flexWrap:'wrap' }}>
+            {[['var(--accent)','Intake komplett'], ['var(--gold)','teilweise'], ['rgba(255,255,255,0.10)','nichts']].map(([c, l]) => (
+              <div key={l} style={{ display:'flex', alignItems:'center', gap: 6 }}>
+                <span style={{ width: 14, height: 3, borderRadius: 3, background: c, flexShrink: 0 }}/>
+                <span style={{ fontSize: 10, color:'var(--txt-3)', letterSpacing: 0.4 }}>{l}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </Section>
 
       {/* EXPANDED DAY VIEW */}
@@ -730,7 +792,7 @@ function ScreenTraining({ data, setData, user, reload }) {
           </Section>
 
           {/* INTAKE — Tageseingabe, speichert sofort (additiv) */}
-          <IntakeDay user={user} goal={data?.proteinGoal ?? 120} monday={monday} dayIndex={expanded}/>
+          <IntakeDay user={user} goal={data?.proteinGoal ?? 120} monday={monday} dayIndex={expanded} onSaved={onIntakeSaved}/>
 
           <Section title="Stimmung">
             <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 6 }}>
