@@ -85,7 +85,7 @@ function IntakeSummary({ user, goal, today }) {
       <Card padding={16}>
         <div style={{ display:'flex', flexDirection:'column', gap: 14 }}>
           <Row glyph="KR" label="Kreatin"
-               sub={streak > 0 ? `${streak} Tage am Stück` : 'keine laufende Serie'}
+               sub={streak > 0 ? `${streak} ${streak === 1 ? 'Tag' : 'Tage'} am Stück` : 'keine laufende Serie'}
                value={Math.round(kDone / DAYS * 100)} unit="%" color="#00A878"/>
           {line}
           <Row glyph="P" label="Protein" sub={`Ziel ${goal} g / Tag`}

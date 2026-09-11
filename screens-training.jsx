@@ -21,6 +21,14 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
 
   const [row, setRow]   = React.useState(null);
   const [busy, setBusy] = React.useState(false);
+  const [err, setErr]   = React.useState(null);
+  // Letzter Stand, der geschrieben werden soll. Ein laufender Schreibvorgang
+  // blockiert neue Eingaben nicht — der zuletzt getippte Wert gewinnt und
+  // wird nachgereicht, sobald der vorherige durch ist. Verhindert, dass eine
+  // Eingabe still verlorengeht.
+  const pendingRef = React.useRef(null);
+  const inFlightRef = React.useRef(false);
+  const timerRef = React.useRef(null);
   const [toastUntil, setToastUntil] = React.useState(0);
   const [, force] = React.useReducer(x => x + 1, 0);
   const toastVisible = Date.now() < toastUntil;
@@ -40,19 +48,65 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
     return () => { alive = false; };
   }, [user?.id, dayDate]);
 
-  if (!window.gainz?.intake?.available) return null;
-  if (!row) return null;
-
-  const save = async (patch) => {
-    if (busy) return;
-    const next = { ...row, ...patch };
-    setRow(next);            // optimistisch
+  // Schreibt den aktuellsten Stand aus pendingRef. Laeuft schon einer,
+  // wird nach dessen Ende erneut geprueft, ob inzwischen etwas Neueres da ist.
+  const flush = React.useCallback(async () => {
+    if (inFlightRef.current) return;
+    const next = pendingRef.current;
+    if (!next) return;
+    pendingRef.current = null;
+    inFlightRef.current = true;
     setBusy(true);
     try {
       const saved = await window.gainz.intake.set(user.id, dayDate, next);
-      if (saved) { setRow(saved); setToastUntil(Date.now() + 1400); }
-    } finally { setBusy(false); }
+      if (saved) {
+        setErr(null);
+        setToastUntil(Date.now() + 1400);
+      } else if (window.gainz?.intake?.available) {
+        // set() gab null zurueck, obwohl die Tabelle da ist → echter Fehler
+        setErr('Konnte nicht gespeichert werden. Nochmal antippen.');
+        pendingRef.current = next;   // Wert nicht verwerfen
+      }
+    } catch (e) {
+      setErr(e?.message || 'Konnte nicht gespeichert werden.');
+      pendingRef.current = next;
+    } finally {
+      inFlightRef.current = false;
+      setBusy(false);
+      if (pendingRef.current) flush();   // Nachzuegler schreiben
+    }
+  }, [user?.id, dayDate]);
+
+  // patch anwenden: sofort im UI, gespeichert entweder direkt (Toggles)
+  // oder nach kurzer Ruhe (Tippen im Grammfeld).
+  const save = (patch, { debounce = 0 } = {}) => {
+    const next = { ...(pendingRef.current || row), ...patch };
+    setRow(next);                 // optimistisch
+    pendingRef.current = next;
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    if (debounce > 0) {
+      timerRef.current = setTimeout(() => { timerRef.current = null; flush(); }, debounce);
+    } else {
+      flush();
+    }
   };
+
+  // Offenen Wert nicht verlieren, wenn der Screen wechselt oder der Tab
+  // geschlossen wird.
+  React.useEffect(() => {
+    const onHide = () => { if (pendingRef.current) flush(); };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onHide);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (pendingRef.current) flush();
+    };
+  }, [flush]);
+
+  if (!window.gainz?.intake?.available) return null;
+  if (!row) return null;
 
   const pct = Math.max(0, Math.min(1, goal ? row.protein_g / goal : 0));
   const proteinColor = row.protein_g >= goal ? '#00A878' : 'var(--gold)';
@@ -67,7 +121,7 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
   );
 
   const Check = ({ on, onClick }) => (
-    <button onClick={onClick} disabled={busy} style={{
+    <button onClick={onClick} style={{
       height: 44, padding:'0 16px', display:'inline-flex', alignItems:'center', gap: 7,
       borderRadius: 12, fontSize: 13, fontWeight: 700, whiteSpace:'nowrap', cursor:'pointer',
       fontFamily:'inherit',
@@ -137,16 +191,17 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
             </div>
 
             <div style={{ display:'flex', alignItems:'center', gap: 10, marginTop: 12 }}>
-              <button style={stepBtn} disabled={busy}
+              <button style={stepBtn}
                 onClick={() => save({ protein_g: Math.max(0, row.protein_g - 5) })}>−</button>
               <input
                 type="number" inputMode="numeric" min={0} max={1000}
                 value={row.protein_g}
                 onChange={(e) => {
                   const n = parseInt(e.target.value, 10);
-                  setRow({ ...row, protein_g: Number.isFinite(n) ? Math.max(0, Math.min(1000, n)) : 0 });
+                  save({ protein_g: Number.isFinite(n) ? Math.max(0, Math.min(1000, n)) : 0 }, { debounce: 700 });
                 }}
-                onBlur={() => save({ protein_g: row.protein_g })}
+                onBlur={() => { if (pendingRef.current) flush(); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
                 style={{
                   flex: 1, height: 44, padding:'0 12px', textAlign:'center',
                   background:'#1a1a2e', border:'1px solid var(--line)', borderRadius: 10,
@@ -155,7 +210,7 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
                   outline:'none', caretColor:'var(--green)',
                   WebkitAppearance:'none', MozAppearance:'textfield',
                 }}/>
-              <button style={stepBtn} disabled={busy}
+              <button style={stepBtn}
                 onClick={() => save({ protein_g: Math.min(1000, row.protein_g + 5) })}>+</button>
               <span style={{ fontSize: 12, color:'var(--txt-2)', minWidth: 52 }}>g / Tag</span>
             </div>
@@ -171,6 +226,13 @@ function IntakeDay({ user, goal, monday, dayIndex }) {
           </div>
         </div>
       </Card>
+      {err && (
+        <div style={{
+          marginTop: 10, padding:'10px 12px',
+          background:'rgba(239,68,68,0.10)', border:'1px solid rgba(239,68,68,0.30)',
+          borderRadius: 10, color:'#EF4444', fontSize: 12,
+        }}>{err}</div>
+      )}
       {toastVisible && (
         <div style={{
           position:'absolute', right: 20, bottom:'calc(100% - 4px)',
