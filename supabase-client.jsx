@@ -347,6 +347,15 @@ const gainz = {
           console.warn(`reset: ${label} threw:`, e?.message || e);
         }
       };
+      // Intake-Tageswerte mitloeschen — scheitert still, falls die Tabelle
+      // (noch) nicht existiert, damit der uebrige Reset nicht abbricht.
+      try {
+        const { error } = await sb.from('daily_intake').delete().eq('user_id', userId);
+        if (error) console.warn('reset: daily_intake skipped:', error.message);
+      } catch (e) {
+        console.warn('reset: daily_intake threw:', e?.message || e);
+      }
+
       await tryPatch('target_weight',  { target_weight: null });
       await tryPatch('muscle_targets', {
         muscle_targets: {
@@ -354,6 +363,83 @@ const gainz = {
           trizeps: 20, bauch: 20, beine: 20,
         },
       });
+    },
+  },
+
+  // ---------------- Intake (Kreatin / Protein / Supplements) ----------------
+  // ADDITIV: liest und schreibt ausschliesslich public.daily_intake.
+  // Faellt lautlos auf "nicht verfuegbar" zurueck, solange die Migration
+  // noch nicht gelaufen ist — die App laeuft dann unveraendert weiter.
+  intake: {
+    // false, sobald PostgREST meldet, dass es die Tabelle/Spalte nicht kennt
+    available: true,
+
+    // Lokales Datum als YYYY-MM-DD (nicht UTC — sonst springt der Tag abends)
+    dayISO(d) {
+      const x = d ? new Date(d) : new Date();
+      const p2 = (n) => String(n).padStart(2, '0');
+      return `${x.getFullYear()}-${p2(x.getMonth() + 1)}-${p2(x.getDate())}`;
+    },
+
+    _handle(error, label) {
+      if (!error) return false;
+      const code = error.code || '';
+      const msg  = error.message || '';
+      // 42P01 = relation does not exist, PGRST205 = unknown table in schema cache
+      if (code === '42P01' || code === 'PGRST205' || /daily_intake/.test(msg)) {
+        if (gainz.intake.available) {
+          console.warn('[intake] Tabelle daily_intake fehlt — Intake-Funktionen bleiben aus. Migration 001_daily_intake.sql ausfuehren.');
+        }
+        gainz.intake.available = false;
+      } else {
+        console.warn(`[intake] ${label}:`, msg);
+      }
+      return true;
+    },
+
+    // Eine Tageszeile; null wenn keine existiert oder die Tabelle fehlt.
+    async get(userId, day) {
+      if (!gainz.intake.available || !userId) return null;
+      const { data, error } = await sb.from('daily_intake')
+        .select('day, creatine, supplements, protein_g')
+        .eq('user_id', userId).eq('day', gainz.intake.dayISO(day))
+        .maybeSingle();
+      if (gainz.intake._handle(error, 'get')) return null;
+      return data || null;
+    },
+
+    // Tageszeile anlegen oder aktualisieren. Gibt die neue Zeile zurueck
+    // oder null, wenn nichts geschrieben werden konnte.
+    async set(userId, day, patch) {
+      if (!gainz.intake.available || !userId) return null;
+      const dayISO = gainz.intake.dayISO(day);
+      const row = {
+        user_id: userId,
+        day: dayISO,
+        creatine: !!patch.creatine,
+        supplements: !!patch.supplements,
+        protein_g: Math.max(0, Math.min(1000, Math.round(Number(patch.protein_g) || 0))),
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await sb.from('daily_intake')
+        .upsert(row, { onConflict: 'user_id,day' })
+        .select('day, creatine, supplements, protein_g')
+        .single();
+      if (gainz.intake._handle(error, 'set')) return null;
+      return data || null;
+    },
+
+    // Alle Tageszeilen in einem Zeitraum, aufsteigend. [] als Fallback.
+    async range(userId, fromDay, toDay) {
+      if (!gainz.intake.available || !userId) return [];
+      const { data, error } = await sb.from('daily_intake')
+        .select('day, creatine, supplements, protein_g')
+        .eq('user_id', userId)
+        .gte('day', gainz.intake.dayISO(fromDay))
+        .lte('day', gainz.intake.dayISO(toDay))
+        .order('day', { ascending: true });
+      if (gainz.intake._handle(error, 'range')) return [];
+      return data || [];
     },
   },
 
@@ -389,6 +475,14 @@ window.useGainzData = function useGainzData(user) {
       const _p = (n) => String(n).padStart(2, '0');
       const mondayISO = `${_mon.getFullYear()}-${_p(_mon.getMonth()+1)}-${_p(_mon.getDate())}`;
 
+      // Intake laeuft in einem eigenen, gekapselten Zweig: schlaegt er fehl,
+      // bleibt todayIntake null und die App rendert wie vorher.
+      const intakeToday = gainz.intake.get(user.id).catch(() => null);
+      const intake30 = (async () => {
+        const from = new Date(); from.setDate(from.getDate() - 29);
+        return gainz.intake.range(user.id, from, new Date());
+      })().catch(() => []);
+
       const [profile, heatmap, quote, weightsDesc, sessionsCount, muscleSets7d, uniqueDaysWeek, streakDays] = await Promise.all([
         gainz.profile.get(user.id),
         gainz.muscles.map(user.id),
@@ -411,6 +505,13 @@ window.useGainzData = function useGainzData(user) {
       const delta = (last && prev)
         ? +(last.weight - prev.weight).toFixed(1)
         : null;
+      const todayIntake = await intakeToday;
+      const intakeRows  = await intake30;
+      const proteinLogged = (intakeRows || []).filter(r => Number(r.protein_g) > 0);
+      const proteinAvg30  = proteinLogged.length
+        ? Math.round(proteinLogged.reduce((a, r) => a + Number(r.protein_g), 0) / proteinLogged.length)
+        : 0;
+
       setData({
         name:        profile.display_name,
         // streak derived from consecutive distinct training days,
@@ -436,6 +537,12 @@ window.useGainzData = function useGainzData(user) {
         heatmap,
         sessionsCount,
         muscleSets7d,
+        // --- Intake (additiv) ---
+        // proteinGoal faellt auf 120 zurueck, solange die Profilspalte fehlt.
+        proteinGoal: Number(profile.protein_goal_g ?? 120) || 120,
+        intakeAvailable: gainz.intake.available,
+        proteinAvg30,
+        todayIntake: todayIntake || { creatine: false, supplements: false, protein_g: 0 },
         _profile: profile,
       });
     } finally {

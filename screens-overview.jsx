@@ -1,4 +1,104 @@
 // screens-overview.jsx — Screen 1: Überblick (Dashboard)
+
+// ─── INTAKE-ZUSAMMENFASSUNG (additiv) ──────────────────────────────────────
+// Grobe Motivationszahlen fuer die letzten 30 Tage: Kreatin-Quote,
+// Protein-Schnitt, Supplement-Quote. Rendert nichts, solange die Tabelle
+// daily_intake fehlt — der Ueberblick sieht dann exakt aus wie vorher.
+function IntakeSummary({ user, goal, today }) {
+  const [rows, setRows] = React.useState(null);
+
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!user?.id || !window.gainz?.intake?.available) { if (alive) setRows([]); return; }
+      const from = new Date(); from.setDate(from.getDate() - 29);
+      try {
+        const r = await window.gainz.intake.range(user.id, from, new Date());
+        if (alive) setRows(r || []);
+      } catch { if (alive) setRows([]); }
+    })();
+    return () => { alive = false; };
+  }, [user?.id, today?.creatine, today?.supplements, today?.protein_g]);
+
+  if (!window.gainz?.intake?.available) return null;
+  if (rows === null) return null;
+
+  const DAYS = 30;
+  const logged = rows.length;
+  const kDone  = rows.filter(r => r.creatine).length;
+  const sDone  = rows.filter(r => r.supplements).length;
+  const pRows  = rows.filter(r => Number(r.protein_g) > 0);
+  const pAvg   = pRows.length ? Math.round(pRows.reduce((a, r) => a + Number(r.protein_g), 0) / pRows.length) : 0;
+
+  // Kreatin-Serie: ab heute rueckwaerts; ist heute noch offen, ab gestern.
+  const byDay = {};
+  rows.forEach(r => { byDay[r.day] = r; });
+  const iso = (d) => window.gainz.intake.dayISO(d);
+  let streak = 0;
+  const cur = new Date();
+  if (!byDay[iso(cur)]?.creatine) cur.setDate(cur.getDate() - 1);
+  for (let i = 0; i < 400; i++) {
+    if (byDay[iso(cur)]?.creatine) { streak++; cur.setDate(cur.getDate() - 1); }
+    else break;
+  }
+
+  if (logged === 0) {
+    return (
+      <Section>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10 }}>
+          <div className="label-cap">Intake</div>
+        </div>
+        <Card padding={16}>
+          <div style={{ fontSize: 13, color:'var(--txt-2)', lineHeight: 1.55 }}>
+            Noch nichts eingetragen — hak Kreatin, Protein und Supplements unter <b>Training</b> ab.
+          </div>
+        </Card>
+      </Section>
+    );
+  }
+
+  const Row = ({ glyph, label, sub, value, unit, color }) => (
+    <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+        background:'rgba(var(--accent-rgb),0.06)', border:'1px solid rgba(var(--accent-rgb),0.28)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        fontSize: 12, fontWeight: 700, fontFamily:'JetBrains Mono, monospace', color:'var(--accent)',
+      }}>{glyph}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>{label}</div>
+        <div style={{ fontSize: 11, color:'var(--txt-2)', marginTop: 2 }}>{sub}</div>
+      </div>
+      <div className="ticker serif" style={{ fontSize: 26, fontWeight: 600, fontStyle:'italic', color, lineHeight: 1 }}>
+        {value}<span style={{ fontSize: 14, color:'var(--txt-2)', fontStyle:'normal' }}> {unit}</span>
+      </div>
+    </div>
+  );
+  const line = <div style={{ height: 1, background:'var(--line)' }}/>;
+
+  return (
+    <Section>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10 }}>
+        <div className="label-cap">Intake</div>
+        <div style={{ fontSize: 11, color:'var(--txt-3)' }}>letzte 30 Tage</div>
+      </div>
+      <Card padding={16}>
+        <div style={{ display:'flex', flexDirection:'column', gap: 14 }}>
+          <Row glyph="KR" label="Kreatin"
+               sub={streak > 0 ? `${streak} Tage am Stück` : 'keine laufende Serie'}
+               value={Math.round(kDone / DAYS * 100)} unit="%" color="#00A878"/>
+          {line}
+          <Row glyph="P" label="Protein" sub={`Ziel ${goal} g / Tag`}
+               value={pAvg || '—'} unit="g Ø" color={pAvg >= goal ? '#00A878' : 'var(--gold)'}/>
+          {line}
+          <Row glyph="SU" label="Supplements" sub={`${sDone} von ${DAYS} Tagen`}
+               value={Math.round(sDone / DAYS * 100)} unit="%" color="#00A878"/>
+        </div>
+      </Card>
+    </Section>
+  );
+}
+
 function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
   // Onboarding banner: shown until user customizes their display name.
   const emailPrefix = user?.email ? user.email.split('@')[0] : null;
@@ -322,6 +422,9 @@ function ScreenOverview({ data, setData, user, openCoach, openProfile }) {
           </Card>
         </div>
       </Section>
+
+      {/* INTAKE — grobe 30-Tage-Zahlen (additiv) */}
+      <IntakeSummary user={user} goal={data.proteinGoal ?? 120} today={data.todayIntake}/>
 
       {/* MUSCLE BALANCE — period filter + dual body view + goal-relative coloring */}
       <Section>

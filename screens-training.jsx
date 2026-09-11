@@ -9,6 +9,345 @@ const ymd = (d) => {
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
 };
 
+// ─── INTAKE: Tageseingabe (additiv) ────────────────────────────────────────
+// Speichert SOFORT beim Antippen in public.daily_intake — unabhaengig vom
+// "Speichern"-Button des Trainings. So entsteht an Ruhetagen keine leere
+// Trainingssession, nur weil Kreatin abgehakt wurde.
+// Rendert nichts, solange die Tabelle fehlt.
+function IntakeDay({ user, goal, monday, dayIndex }) {
+  const dayDate = React.useMemo(() => {
+    const d = new Date(monday); d.setDate(d.getDate() + dayIndex); return d;
+  }, [monday, dayIndex]);
+
+  const [row, setRow]   = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+  const [toastUntil, setToastUntil] = React.useState(0);
+  const [, force] = React.useReducer(x => x + 1, 0);
+  const toastVisible = Date.now() < toastUntil;
+  React.useEffect(() => {
+    if (!toastUntil) return;
+    const id = setTimeout(force, Math.max(0, toastUntil - Date.now()) + 50);
+    return () => clearTimeout(id);
+  }, [toastUntil]);
+
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!user?.id || !window.gainz?.intake?.available) { if (alive) setRow({ creatine:false, supplements:false, protein_g:0 }); return; }
+      const r = await window.gainz.intake.get(user.id, dayDate);
+      if (alive) setRow(r || { creatine:false, supplements:false, protein_g:0 });
+    })();
+    return () => { alive = false; };
+  }, [user?.id, dayDate]);
+
+  if (!window.gainz?.intake?.available) return null;
+  if (!row) return null;
+
+  const save = async (patch) => {
+    if (busy) return;
+    const next = { ...row, ...patch };
+    setRow(next);            // optimistisch
+    setBusy(true);
+    try {
+      const saved = await window.gainz.intake.set(user.id, dayDate, next);
+      if (saved) { setRow(saved); setToastUntil(Date.now() + 1400); }
+    } finally { setBusy(false); }
+  };
+
+  const pct = Math.max(0, Math.min(1, goal ? row.protein_g / goal : 0));
+  const proteinColor = row.protein_g >= goal ? '#00A878' : 'var(--gold)';
+
+  const Glyph = ({ children }) => (
+    <div style={{
+      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+      background:'rgba(var(--accent-rgb),0.06)', border:'1px solid rgba(var(--accent-rgb),0.28)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      fontSize: 12, fontWeight: 700, fontFamily:'JetBrains Mono, monospace', color:'var(--accent)',
+    }}>{children}</div>
+  );
+
+  const Check = ({ on, onClick }) => (
+    <button onClick={onClick} disabled={busy} style={{
+      height: 44, padding:'0 16px', display:'inline-flex', alignItems:'center', gap: 7,
+      borderRadius: 12, fontSize: 13, fontWeight: 700, whiteSpace:'nowrap', cursor:'pointer',
+      fontFamily:'inherit',
+      background: on ? 'rgba(var(--accent-rgb),0.20)' : 'rgba(255,255,255,0.03)',
+      border: `1px solid ${on ? 'rgba(var(--accent-rgb),0.50)' : 'var(--line)'}`,
+      color: on ? '#00A878' : 'var(--txt-2)',
+      boxShadow: on ? '0 0 18px rgba(var(--accent-bloom-rgb, var(--accent-rgb)),0.20), inset 0 1px 0 rgba(255,255,255,0.10)' : 'none',
+      transition:'all .15s',
+    }}>
+      {on ? <Icon.check size={15} color="currentColor" stroke={2.6}/>
+          : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/></svg>}
+      {on ? 'Genommen' : 'Abhaken'}
+    </button>
+  );
+
+  const stepBtn = {
+    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+    background:'rgba(255,255,255,0.03)', border:'1px solid var(--line)',
+    color:'var(--accent)', fontSize: 20, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+  };
+
+  return (
+    <Section style={{ position:'relative' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10 }}>
+        <div className="label-cap">Intake</div>
+        <div style={{ fontSize: 10, color:'var(--txt-3)', letterSpacing: 0.5 }}>speichert sofort</div>
+      </div>
+      <Card padding={16}>
+        <div style={{ display:'flex', flexDirection:'column', gap: 14 }}>
+
+          <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
+            <Glyph>KR</Glyph>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Kreatin</div>
+              <div style={{ fontSize: 11, color:'var(--txt-2)', marginTop: 2 }}>
+                {row.creatine ? 'heute genommen' : 'heute offen'}
+              </div>
+            </div>
+            <Check on={!!row.creatine} onClick={() => save({ creatine: !row.creatine })}/>
+          </div>
+
+          <div style={{ height: 1, background:'var(--line)' }}/>
+
+          <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
+            <Glyph>SU</Glyph>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Supplements</div>
+              <div style={{ fontSize: 11, color:'var(--txt-2)', marginTop: 2 }}>
+                {row.supplements ? 'heute genommen' : 'heute offen'}
+              </div>
+            </div>
+            <Check on={!!row.supplements} onClick={() => save({ supplements: !row.supplements })}/>
+          </div>
+
+          <div style={{ height: 1, background:'var(--line)' }}/>
+
+          <div>
+            <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
+              <Glyph>P</Glyph>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>Protein</div>
+                <div style={{ fontSize: 11, color:'var(--txt-2)', marginTop: 2 }}>Ziel {goal} g · 100 % Baseline</div>
+              </div>
+              <div className="ticker serif" style={{ fontSize: 28, fontWeight: 600, fontStyle:'italic', color: proteinColor, lineHeight: 1 }}>
+                {row.protein_g}
+              </div>
+            </div>
+
+            <div style={{ display:'flex', alignItems:'center', gap: 10, marginTop: 12 }}>
+              <button style={stepBtn} disabled={busy}
+                onClick={() => save({ protein_g: Math.max(0, row.protein_g - 5) })}>−</button>
+              <input
+                type="number" inputMode="numeric" min={0} max={1000}
+                value={row.protein_g}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value, 10);
+                  setRow({ ...row, protein_g: Number.isFinite(n) ? Math.max(0, Math.min(1000, n)) : 0 });
+                }}
+                onBlur={() => save({ protein_g: row.protein_g })}
+                style={{
+                  flex: 1, height: 44, padding:'0 12px', textAlign:'center',
+                  background:'#1a1a2e', border:'1px solid var(--line)', borderRadius: 10,
+                  color:'#FFFFFF', WebkitTextFillColor:'#FFFFFF',
+                  fontSize: 20, fontWeight: 700, fontFamily:'inherit',
+                  outline:'none', caretColor:'var(--green)',
+                  WebkitAppearance:'none', MozAppearance:'textfield',
+                }}/>
+              <button style={stepBtn} disabled={busy}
+                onClick={() => save({ protein_g: Math.min(1000, row.protein_g + 5) })}>+</button>
+              <span style={{ fontSize: 12, color:'var(--txt-2)', minWidth: 52 }}>g / Tag</span>
+            </div>
+
+            <div style={{ height: 8, borderRadius: 8, marginTop: 12, background:'rgba(255,255,255,0.05)', border:'1px solid var(--line)', overflow:'hidden' }}>
+              <div style={{
+                height:'100%', width: `${pct * 100}%`, borderRadius: 8,
+                background: row.protein_g >= goal ? 'var(--grad)' : 'linear-gradient(90deg, var(--gold), rgba(var(--gold-rgb),0.55))',
+                boxShadow:'0 0 12px rgba(var(--accent-bloom-rgb, var(--accent-rgb)),0.35)',
+                transition:'width .3s ease',
+              }}/>
+            </div>
+          </div>
+        </div>
+      </Card>
+      {toastVisible && (
+        <div style={{
+          position:'absolute', right: 20, bottom:'calc(100% - 4px)',
+          padding:'8px 14px', borderRadius: 999,
+          background:'rgba(34,197,94,0.18)', border:'1px solid rgba(34,197,94,0.45)',
+          color:'#22C55E', fontSize: 12, fontWeight: 700, letterSpacing: 1,
+          boxShadow:'0 6px 18px rgba(34,197,94,0.20)', whiteSpace:'nowrap',
+        }}>Gespeichert ✓</div>
+      )}
+    </Section>
+  );
+}
+
+// ─── INTAKE: Monatsverlauf (additiv) ───────────────────────────────────────
+// Gleiche Optik wie die Trainings-Monatsansicht darueber, gleicher Monat.
+function IntakeMonth({ user, goal, monthDate }) {
+  const [rows, setRows] = React.useState(null);
+
+  const year = monthDate.getFullYear(), month = monthDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  React.useEffect(() => {
+    let alive = true;
+    setRows(null);
+    (async () => {
+      if (!user?.id || !window.gainz?.intake?.available) { if (alive) setRows([]); return; }
+      const from = new Date(year, month, 1);
+      const to   = new Date(year, month, daysInMonth);
+      const r = await window.gainz.intake.range(user.id, from, to);
+      if (alive) setRows(r || []);
+    })();
+    return () => { alive = false; };
+  }, [user?.id, year, month, daysInMonth]);
+
+  if (!window.gainz?.intake?.available) return null;
+  if (rows === null) {
+    return <Section><Card padding={20} style={{ textAlign:'center', color:'var(--txt-2)' }}>Lade Intake…</Card></Section>;
+  }
+
+  const byDay = {};
+  rows.forEach(r => { byDay[Number(String(r.day).slice(8, 10))] = r; });
+
+  const protein = Array.from({ length: daysInMonth }, (_, i) => Number(byDay[i + 1]?.protein_g || 0));
+  const krea    = Array.from({ length: daysInMonth }, (_, i) => !!byDay[i + 1]?.creatine);
+  const supp    = Array.from({ length: daysInMonth }, (_, i) => !!byDay[i + 1]?.supplements);
+
+  const logged  = protein.filter(v => v > 0);
+  const avg     = logged.length ? Math.round(logged.reduce((a, b) => a + b, 0) / logged.length) : 0;
+  const kDone   = krea.filter(Boolean).length;
+  const sDone   = supp.filter(Boolean).length;
+  const scale   = Math.max(goal * 1.5, ...protein, 1);
+  const goalPct = (goal / scale) * 100;
+
+  if (rows.length === 0) {
+    return (
+      <Section>
+        <div className="label-cap" style={{ marginBottom: 10 }}>Intake</div>
+        <Card padding={20} style={{ textAlign:'center' }}>
+          <div style={{ fontSize: 13, color:'var(--txt-2)', lineHeight: 1.55 }}>
+            Für diesen Monat ist noch kein Intake eingetragen.
+          </div>
+        </Card>
+      </Section>
+    );
+  }
+
+  const dots = (arr, color) => (
+    <div style={{ flex: 1, display:'flex', gap: 2 }}>
+      {arr.map((on, i) => (
+        <div key={i} title={`${i + 1}.`} style={{
+          flex: 1, minWidth: 2, height: 10, borderRadius: 2,
+          background: on ? color : 'rgba(255,255,255,0.06)',
+        }}/>
+      ))}
+    </div>
+  );
+
+  // Wochen-Tabelle
+  const weeks = [];
+  for (let w = 0; w * 7 < daysInMonth; w++) {
+    const from = w * 7 + 1, to = Math.min(daysInMonth, from + 6);
+    let ps = 0, pn = 0, kd = 0, sd = 0;
+    for (let d = from; d <= to; d++) {
+      if (protein[d - 1] > 0) { ps += protein[d - 1]; pn++; }
+      if (krea[d - 1]) kd++;
+      if (supp[d - 1]) sd++;
+    }
+    weeks.push({ label: `${from}.–${to}.`, avg: pn ? Math.round(ps / pn) : 0, kd, sd, len: to - from + 1 });
+  }
+
+  const th = { fontSize: 11, color:'var(--txt-3)', letterSpacing: 1.2, textTransform:'uppercase', fontWeight: 600 };
+  const grid = { display:'grid', gridTemplateColumns:'1.2fr 1fr .8fr .8fr', gap: 8 };
+
+  return (
+    <>
+      <Section>
+        <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 10 }}>
+          <div className="label-cap">Intake</div>
+          <div style={{ fontSize: 11, color:'var(--txt-3)' }}>Ziel {goal} g</div>
+        </div>
+        <Card padding={16}>
+          {/* Protein je Tag */}
+          <div style={{ position:'relative', height: 64, marginBottom: 8 }}>
+            <div style={{ position:'absolute', left: 0, right: 0, bottom: `${goalPct}%`, borderTop:'1px dashed var(--txt-2)', opacity: .7 }}/>
+            <div style={{ display:'flex', alignItems:'flex-end', gap: 2, height:'100%' }}>
+              {protein.map((v, i) => (
+                <div key={i} title={v > 0 ? `${i + 1}. · ${v} g` : `${i + 1}. · keine`} style={{
+                  flex: 1, minWidth: 2,
+                  height: v > 0 ? `${Math.min(100, v / scale * 100)}%` : 2,
+                  minHeight: v > 0 ? 3 : 2,
+                  background: v === 0 ? 'rgba(255,255,255,0.05)' : (v >= goal ? '#00A878' : 'rgba(var(--accent-rgb),0.85)'),
+                  borderRadius: 2,
+                  boxShadow: v > 0 ? '0 0 6px rgba(var(--accent-bloom-rgb, var(--accent-rgb)),0.25)' : 'none',
+                }}/>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display:'flex', alignItems:'center', gap: 8, marginBottom: 5 }}>
+            <div style={{ width: 24, flexShrink: 0, fontSize: 9, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace' }}>KR</div>
+            {dots(krea, '#00A878')}
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap: 8, marginBottom: 10 }}>
+            <div style={{ width: 24, flexShrink: 0, fontSize: 9, color:'var(--txt-3)', fontFamily:'JetBrains Mono, monospace' }}>SU</div>
+            {dots(supp, 'rgba(var(--accent-rgb),0.95)')}
+          </div>
+
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize: 9, color:'var(--txt-3)', letterSpacing: 0.6, marginBottom: 14 }}>
+            <span>1.</span><span>{Math.ceil(daysInMonth / 2)}.</span><span>{daysInMonth}.</span>
+          </div>
+
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 8, paddingTop: 12, borderTop:'1px solid var(--line)' }}>
+            {[
+              { label:'Ø Protein',   val: avg ? `${avg} g` : '—', col:'var(--accent)' },
+              { label:'Kreatin',     val: `${Math.round(kDone / daysInMonth * 100)} %`, col:'#00A878' },
+              { label:'Supplements', val: `${Math.round(sDone / daysInMonth * 100)} %`, col:'#00A878' },
+            ].map(x => (
+              <div key={x.label} style={{ textAlign:'center' }}>
+                <div className="ticker serif" style={{ fontSize: 22, fontWeight: 600, fontStyle:'italic', color: x.col, lineHeight: 1 }}>{x.val}</div>
+                <div className="label-cap" style={{ marginTop: 4 }}>{x.label}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </Section>
+
+      <Section>
+        <div className="label-cap" style={{ marginBottom: 10 }}>Intake · Wochen im Monat</div>
+        <Card padding={16}>
+          <div style={{ ...grid, paddingBottom: 9, borderBottom:'1px solid var(--line)' }}>
+            <div style={th}>Woche</div>
+            <div style={{ ...th, textAlign:'right' }}>Ø Protein</div>
+            <div style={{ ...th, textAlign:'right' }}>Krea</div>
+            <div style={{ ...th, textAlign:'right' }}>Supps</div>
+          </div>
+          {weeks.map(w => (
+            <div key={w.label} style={{ ...grid, padding:'10px 0', borderBottom:'1px solid var(--line)' }}>
+              <div style={{ fontSize: 13, color:'var(--txt-2)' }}>{w.label}</div>
+              <div className="ticker" style={{ fontSize: 13, fontWeight: 700, textAlign:'right', color: w.avg >= goal ? '#00A878' : 'var(--txt)' }}>
+                {w.avg ? `${w.avg} g` : '—'}
+              </div>
+              <div className="ticker" style={{ fontSize: 13, textAlign:'right', color: w.kd === w.len ? '#00A878' : 'var(--txt)' }}>{w.kd}/{w.len}</div>
+              <div className="ticker" style={{ fontSize: 13, textAlign:'right', color: w.sd === w.len ? '#00A878' : 'var(--txt)' }}>{w.sd}/{w.len}</div>
+            </div>
+          ))}
+          <div style={{ ...grid, paddingTop: 11 }}>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>Monat</div>
+            <div className="ticker" style={{ fontSize: 13, fontWeight: 700, textAlign:'right' }}>{avg ? `Ø ${avg} g` : '—'}</div>
+            <div className="ticker" style={{ fontSize: 13, fontWeight: 700, textAlign:'right', color:'#00A878' }}>{kDone}/{daysInMonth}</div>
+            <div className="ticker" style={{ fontSize: 13, fontWeight: 700, textAlign:'right', color:'#00A878' }}>{sDone}/{daysInMonth}</div>
+          </div>
+        </Card>
+      </Section>
+    </>
+  );
+}
+
 function ScreenTraining({ data, setData, user, reload }) {
   // Current week (Monday → Sunday) derived from today; today's index expanded by default.
   const today = React.useMemo(() => new Date(), []);
@@ -246,7 +585,7 @@ function ScreenTraining({ data, setData, user, reload }) {
         </div>
       </Section>
 
-      {tab === 'history' ? <VerlaufTab user={user}/> : <>
+      {tab === 'history' ? <VerlaufTab user={user} goal={data?.proteinGoal ?? 120}/> : <>
 
       {/* WEEK GRID */}
       <Section>
@@ -327,6 +666,9 @@ function ScreenTraining({ data, setData, user, reload }) {
               })}
             </Card>
           </Section>
+
+          {/* INTAKE — Tageseingabe, speichert sofort (additiv) */}
+          <IntakeDay user={user} goal={data?.proteinGoal ?? 120} monday={monday} dayIndex={expanded}/>
 
           <Section title="Stimmung">
             <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 6 }}>
@@ -424,7 +766,7 @@ const MUSCLE_LABEL_DE = {
   bizeps: 'Bizeps', trizeps: 'Trizeps', bauch: 'Bauch', beine: 'Beine',
 };
 
-function VerlaufTab({ user }) {
+function VerlaufTab({ user, goal = 120 }) {
   const [monthDate, setMonthDate] = React.useState(() => {
     const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); return d;
   });
@@ -550,6 +892,9 @@ function VerlaufTab({ user }) {
           </div>
         </Card>
       </Section>
+
+      {/* INTAKE — gleicher Monat, gleiche Optik (additiv) */}
+      <IntakeMonth user={user} goal={goal} monthDate={monthDate}/>
 
       {/* SESSION LIST */}
       {sessions === null ? (
