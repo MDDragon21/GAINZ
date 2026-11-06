@@ -8,9 +8,37 @@ name: Supabase Keep-Alive
 on:
   schedule:
     - cron: "17 6 * * 1,4"   # Mondays & Thursdays, 06:17 UTC
-  workflow_dispatch: {}        # allow manual runs from the Actions tab
+  workflow_dispatch:           # allow manual runs from the Actions tab
+    inputs:
+      force:
+        description: "Create the keep-active commit now (for testing)"
+        type: boolean
+        default: false
 
 jobs:
+  # GitHub disables scheduled workflows after 60 days without repository
+  # activity. An empty commit after 30 quiet days keeps this schedule alive.
+  keep-repo-active:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Commit if the repository has been quiet for 30 days
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          age=$(( ($(date +%s) - $(git log -1 --format=%ct)) / 86400 ))
+          echo "Last commit: $age days ago"
+          if [ "$age" -lt 30 ] && [ "$FORCE" != "true" ]; then
+            echo "Repository is active, nothing to do"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore: keep scheduled workflows active"
+          git push
+
   ping:
     runs-on: ubuntu-latest
     strategy:
